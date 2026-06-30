@@ -2,6 +2,12 @@
 
 > **Ask first. Think second. Generate last.**
 
+### ❄️ QAMate Roadmap Status
+
+- **Architecture**: ✅ Frozen (v1)
+- **Roadmap**: ✅ Frozen (v1)
+- _New features require implementation experience before roadmap changes._
+
 QAMate is **not** another AI chatbot or passive code generator. It is an open-source, AI-powered **Senior QA Thinking Assistant** built for QA engineers who want to think deeper, verify assumptions, and build high-quality, professional test coverage rather than just generating quantity.
 
 ---

@@ -7,6 +7,7 @@ import {
   TestCase,
   Conversation,
   ProjectConfig,
+  TestStrategy,
 } from '../domain.js';
 import {
   GeneratorContext,
@@ -124,6 +125,14 @@ export interface IContextValidator {
 export interface IContextRenderer {
   renderToMarkdown(context: GeneratorContext, templatePath: string): Promise<string>;
   renderToJSON(context: GeneratorContext): Promise<string>;
+}
+
+/**
+ * Test Strategy Engine Module
+ * Analyzes GeneratorContext to construct the executable TestStrategy.
+ */
+export interface ITestStrategyEngine {
+  developStrategy(context: GeneratorContext): Promise<TestStrategy>;
 }
 
 /**

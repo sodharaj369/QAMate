@@ -4,3 +4,4 @@ export * from './domain.js';
 export * from './analyzer/index.js';
 export * from './clarification/index.js';
 export * from './context/index.js';
+export * from './strategy/index.js';

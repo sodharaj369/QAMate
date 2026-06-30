@@ -306,3 +306,74 @@ export interface ReviewResult {
   readonly coverageScore: number; // Percent estimation of requirement coverage (0.0 to 1.0)
   readonly suggestions: string[]; // Quality enhancement recommendations
 }
+
+export type BusinessImpact = 'low' | 'medium' | 'high' | 'critical';
+export type RiskLevel = 'low' | 'medium' | 'high';
+
+export interface SuiteRecommendation {
+  readonly suite: string;
+  readonly priority: number;
+  readonly reason: string;
+}
+
+export interface SuiteExclusion {
+  readonly suite: string;
+  readonly reason: string;
+}
+
+export interface OutOfScopeItem {
+  readonly area: string;
+  readonly reason: string;
+}
+
+export interface AutomationCandidate {
+  readonly scenario: string;
+  readonly reason: string;
+}
+
+export interface ManualExploratoryFocus {
+  readonly area: string;
+  readonly instructions: string;
+}
+
+export interface ExecutionStep {
+  readonly order: number;
+  readonly suite: string;
+  readonly focus: string;
+}
+
+export interface EffortEstimation {
+  readonly suite: string;
+  readonly durationMinutes: number;
+}
+
+/**
+ * ----------------------------------------------------------------------------
+ * 9. TestStrategy Aggregate (Aggregate Root)
+ * ----------------------------------------------------------------------------
+ * Rationale:
+ * An executable QA strategy mapped by evaluating the GeneratorContext.
+ * It contains risk analysis, objective traceability matrices, suite priorities,
+ * exclusions, test data, effort metrics, and a reasoning audit trail.
+ */
+export interface TestStrategy {
+  readonly id: string;
+  readonly requirementId: string;
+  readonly businessImpact: BusinessImpact;
+  readonly riskLevel: RiskLevel;
+  readonly objectives: string[];
+  readonly primaryFocus: string[];
+  readonly recommendedSuites: SuiteRecommendation[];
+  readonly excludedSuites: SuiteExclusion[];
+  readonly outOfScope: OutOfScopeItem[];
+  readonly automationCandidates: AutomationCandidate[];
+  readonly manualExploratoryScenarios: ManualExploratoryFocus[];
+  readonly suggestedTestData: string[];
+  readonly suggestedPreconditions: string[];
+  readonly suggestedEnvironments: string[];
+  readonly executionOrder: ExecutionStep[];
+  readonly estimatedEffort: EffortEstimation[];
+  readonly confidenceScore: number;
+  readonly reasoningTrace: string[];
+  readonly createdAt: Date;
+}
