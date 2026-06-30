@@ -9,7 +9,7 @@ import {
   AutomationCandidate,
   ManualExploratoryFocus,
   ExecutionStep,
-  EffortEstimation
+  EffortEstimation,
 } from '../domain.js';
 import { ITestStrategyEngine } from '../interfaces/index.js';
 
@@ -20,19 +20,34 @@ export class DefaultTestStrategyEngine implements ITestStrategyEngine {
     // 1. Assess Risk & Business Impact
     trace.push('Requirement parsed: Analyzing keywords to grade business impact and risk.');
     const content = context.requirement.content.toLowerCase();
-    
+
     let businessImpact: BusinessImpact = 'medium';
-    if (content.includes('sec') || content.includes('security') || content.includes('auth') || content.includes('public')) {
+    if (
+      content.includes('sec') ||
+      content.includes('security') ||
+      content.includes('auth') ||
+      content.includes('public')
+    ) {
       businessImpact = 'critical';
-    } else if (content.includes('payment') || content.includes('premium') || content.includes('financial')) {
+    } else if (
+      content.includes('payment') ||
+      content.includes('premium') ||
+      content.includes('financial')
+    ) {
       businessImpact = 'high';
     }
     trace.push(`Assessed Business Impact: ${businessImpact.toUpperCase()}`);
 
     let riskLevel: RiskLevel = 'low';
-    if (context.intelligence.complexity.level === 'high' || context.intelligence.ambiguities.length > 2) {
+    if (
+      context.intelligence.complexity.level === 'high' ||
+      context.intelligence.ambiguities.length > 2
+    ) {
       riskLevel = 'high';
-    } else if (context.intelligence.complexity.level === 'medium' || context.intelligence.missingInformation.length > 0) {
+    } else if (
+      context.intelligence.complexity.level === 'medium' ||
+      context.intelligence.missingInformation.length > 0
+    ) {
       riskLevel = 'medium';
     }
     trace.push(`Assessed Engineering Risk Level: ${riskLevel.toUpperCase()}`);
@@ -41,11 +56,21 @@ export class DefaultTestStrategyEngine implements ITestStrategyEngine {
     const objectives: string[] = [];
     const primaryFocus: string[] = [];
 
-    if (content.includes('storage') || content.includes('account') || content.includes('blob') || content.includes('container')) {
+    if (
+      content.includes('storage') ||
+      content.includes('account') ||
+      content.includes('blob') ||
+      content.includes('container')
+    ) {
       primaryFocus.push('Cloud Infrastructure / Storage');
       objectives.push('Verify storage accounts are secured and public access is disabled.');
     }
-    if (content.includes('auth') || content.includes('token') || content.includes('access') || content.includes('expired')) {
+    if (
+      content.includes('auth') ||
+      content.includes('token') ||
+      content.includes('access') ||
+      content.includes('expired')
+    ) {
       primaryFocus.push('Security / Authentication');
       objectives.push('Verify authenticated application read/write requests still function.');
       if (content.includes('expiry') || content.includes('token')) {
@@ -56,7 +81,9 @@ export class DefaultTestStrategyEngine implements ITestStrategyEngine {
       primaryFocus.push('General Functional');
       objectives.push(`Verify correct logical execution of "${context.requirement.title}".`);
     }
-    trace.push(`Formulated Objectives: Generated ${objectives.length} core test strategy objectives.`);
+    trace.push(
+      `Formulated Objectives: Generated ${objectives.length} core test strategy objectives.`,
+    );
 
     // 3. Recommended & Excluded Suites (Why NOT / Out-of-Scope)
     const recommendedSuites: SuiteRecommendation[] = [];
@@ -74,7 +101,8 @@ export class DefaultTestStrategyEngine implements ITestStrategyEngine {
     recommendedSuites.push({
       suite: 'Smoke',
       priority: 2,
-      reason: 'Ensures primary container accessibility remains functional after configuration shifts.',
+      reason:
+        'Ensures primary container accessibility remains functional after configuration shifts.',
     });
     recommendedSuites.push({
       suite: 'Regression',
@@ -98,12 +126,15 @@ export class DefaultTestStrategyEngine implements ITestStrategyEngine {
       suite: 'Visual / UI',
       reason: 'No frontend visual elements affected by public-access flag adjustments.',
     });
-    trace.push('Determined Suite Scope: Recommended primary suites, excluded Accessibility/Visual due to zero UI updates.');
+    trace.push(
+      'Determined Suite Scope: Recommended primary suites, excluded Accessibility/Visual due to zero UI updates.',
+    );
 
     // Out of Scope
     outOfScope.push({
       area: 'Performance / Load Testing',
-      reason: 'No performance SLA criteria, scale targets, or throughput boundaries specified in the requirement.',
+      reason:
+        'No performance SLA criteria, scale targets, or throughput boundaries specified in the requirement.',
     });
     outOfScope.push({
       area: 'Localization',
@@ -139,7 +170,8 @@ export class DefaultTestStrategyEngine implements ITestStrategyEngine {
     const manualExploratoryScenarios: ManualExploratoryFocus[] = [
       {
         area: 'Existing integrations check',
-        instructions: 'Deploy configuration block to sandbox and verify that current system image rendering and document templates using these accounts continue loading without resource errors.',
+        instructions:
+          'Deploy configuration block to sandbox and verify that current system image rendering and document templates using these accounts continue loading without resource errors.',
       },
     ];
 
@@ -159,7 +191,8 @@ export class DefaultTestStrategyEngine implements ITestStrategyEngine {
       {
         order: 3,
         suite: 'Regression',
-        focus: 'Verify integrated client applications function correctly without connection errors.',
+        focus:
+          'Verify integrated client applications function correctly without connection errors.',
       },
     ];
 
@@ -168,7 +201,9 @@ export class DefaultTestStrategyEngine implements ITestStrategyEngine {
       { suite: 'Security', durationMinutes: 45 },
       { suite: 'Regression', durationMinutes: 120 },
     ];
-    trace.push('Compiled Execution Plan: Sequenced execution order, mapped preconditions, test data, and estimated effort.');
+    trace.push(
+      'Compiled Execution Plan: Sequenced execution order, mapped preconditions, test data, and estimated effort.',
+    );
 
     // 5. Calculate overall confidence score
     let confidenceScore = 1.0;

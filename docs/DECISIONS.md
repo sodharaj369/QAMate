@@ -46,3 +46,12 @@ This document registers the core architectural decisions that govern the develop
 - **Context**: A manual tester, an automation engineer, and a backend developer require vastly different testing outputs from the same requirement.
 - **Decision**: The Context Engine must accept a target persona configuration (`manual-qa` | `automation-qa` | `backend-developer` | `tech-lead`) to shape compiler priorities, rather than relying on custom system prompt tuning.
 - **Consequences**: Decouples the target formatting logic from the reasoning engine, allowing the same requirement context to compile specific artifacts for each team member.
+
+---
+
+## 📄 ADR-006: Evidence-Based Traceability
+
+- **Status**: Accepted
+- **Context**: Explaining recommendations with summary reasoning traces is good, but lacks structural verification. QA Leads need specific reference evidence matching requirements and acceptance criteria.
+- **Decision**: Recommendations, impacts, and exclusions must explicitly reference spec coordinates (evidence indices or quotes, e.g. "Acceptance Criteria 1", "Description sentence 2") to ground strategies in structural facts.
+- **Consequences**: Strengthens strategic justifications, teaches engineers to trace tests to requirement sections, and allows the Coverage module to audit logic coverage.

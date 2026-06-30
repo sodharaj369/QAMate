@@ -335,47 +335,52 @@ async function main() {
     console.log(`Primary Focus Areas:  ${testStrategy.primaryFocus.join(', ')}`);
     console.log(`------------------------------------------------------`);
     console.log(`🎯 Traceable Testing Objectives:`);
-    testStrategy.objectives.forEach(obj => console.log(`  - ${obj}`));
+    testStrategy.objectives.forEach((obj) => console.log(`  - ${obj}`));
     console.log(`------------------------------------------------------`);
     console.log(`📋 Preconditions Required:`);
-    testStrategy.suggestedPreconditions.forEach(pre => console.log(`  - ${pre}`));
+    testStrategy.suggestedPreconditions.forEach((pre) => console.log(`  - ${pre}`));
     console.log(`------------------------------------------------------`);
     console.log(`📦 Suggested Test Data Sets:`);
-    testStrategy.suggestedTestData.forEach(td => console.log(`  - ${td}`));
+    testStrategy.suggestedTestData.forEach((td) => console.log(`  - ${td}`));
     console.log(`------------------------------------------------------`);
     console.log(`🛡️  Recommended Test Suites:`);
-    testStrategy.recommendedSuites.forEach(s => {
+    testStrategy.recommendedSuites.forEach((s) => {
       console.log(`  ✔ [${s.suite}] (Priority: ${s.priority}) - ${s.reason}`);
     });
     console.log(`\n🚫 Excluded Test Suites (Why NOT):`);
-    testStrategy.excludedSuites.forEach(s => {
+    testStrategy.excludedSuites.forEach((s) => {
       console.log(`  ✘ [${s.suite}] - ${s.reason}`);
     });
     console.log(`\n🌴 Out of Scope / Deferred Testing:`);
-    testStrategy.outOfScope.forEach(s => {
+    testStrategy.outOfScope.forEach((s) => {
       console.log(`  - [${s.area}] - ${s.reason}`);
     });
     console.log(`------------------------------------------------------`);
     console.log(`🤖 Automation Candidates:`);
-    testStrategy.automationCandidates.forEach(cand => {
+    testStrategy.automationCandidates.forEach((cand) => {
       console.log(`  ✔ Scenario: "${cand.scenario}"\n    Reason:   ${cand.reason}`);
     });
     console.log(`\n🔬 Manual Exploratory Charters:`);
-    testStrategy.manualExploratoryScenarios.forEach(charter => {
+    testStrategy.manualExploratoryScenarios.forEach((charter) => {
       console.log(`  ✔ Area:    ${charter.area}\n    Focus:   ${charter.instructions}`);
     });
     console.log(`------------------------------------------------------`);
     console.log(`Suggested Environments: ${testStrategy.suggestedEnvironments.join(', ')}`);
     console.log(`\nExecution Sequencing:`);
-    testStrategy.executionOrder.forEach(step => {
+    testStrategy.executionOrder.forEach((step) => {
       console.log(`  ${step.order}. [${step.suite}] ➔ ${step.focus}`);
     });
     console.log(`\nEstimated Effort:`);
-    testStrategy.estimatedEffort.forEach(eff => {
+    testStrategy.estimatedEffort.forEach((eff) => {
       console.log(`  - [${eff.suite}]: ${eff.durationMinutes} min`);
     });
-    const totalEffort = testStrategy.estimatedEffort.reduce((sum, current) => sum + current.durationMinutes, 0);
-    console.log(`  Total Estimated Effort: ${totalEffort} min (~${(totalEffort / 60).toFixed(1)} hrs)`);
+    const totalEffort = testStrategy.estimatedEffort.reduce(
+      (sum, current) => sum + current.durationMinutes,
+      0,
+    );
+    console.log(
+      `  Total Estimated Effort: ${totalEffort} min (~${(totalEffort / 60).toFixed(1)} hrs)`,
+    );
     console.log(`------------------------------------------------------`);
     console.log(`🧠 QA Strategy Reasoning Trace:`);
     testStrategy.reasoningTrace.forEach((traceStep, idx) => {
