@@ -377,3 +377,190 @@ export interface TestStrategy {
   readonly reasoningTrace: string[];
   readonly createdAt: Date;
 }
+
+export type UserPersona =
+  | 'manual-qa'
+  | 'automation-qa'
+  | 'backend-developer'
+  | 'frontend-developer'
+  | 'tech-lead'
+  | 'security-tester'
+  | 'performance-tester';
+
+export interface ProjectProfile {
+  readonly language: string;
+  readonly framework: string;
+  readonly database?: string;
+  readonly cloud?: string;
+  readonly testingStyle: string;
+}
+
+/**
+ * ----------------------------------------------------------------------------
+ * 10. ArtifactPlan Aggregate (Aggregate Root)
+ * ----------------------------------------------------------------------------
+ * Rationale:
+ * Maps target artifacts and specific prompt hints based on UserPersona
+ * and the repository's technology stack Profile. It allows the generation
+ * engine to format outputs specifically for developers, QAs, or leads.
+ */
+export interface ArtifactPlan {
+  readonly id: string;
+  readonly strategyId: string;
+  readonly persona: UserPersona;
+  readonly profile: ProjectProfile;
+  readonly selectedArtifacts: string[];
+  readonly generationInstructions: string[];
+  readonly reasoning: string[];
+  readonly createdAt: Date;
+}
+
+/**
+ * ----------------------------------------------------------------------------
+ * 11. QAArtifact Aggregate (Aggregate Root)
+ * ----------------------------------------------------------------------------
+ * Rationale:
+ * Represents the generated engineering verification files (manual tests,
+ * unit code skeletons, API requests) parsed from the LLM provider execution.
+ */
+export interface QAArtifact {
+  readonly id: string;
+  readonly planId: string;
+  readonly type: string;
+  readonly content: string;
+  readonly createdAt: Date;
+}
+
+export interface ReviewIssue {
+  readonly id: string;
+  readonly category: string;
+  readonly description: string;
+  readonly severity: 'low' | 'medium' | 'high';
+  readonly fileArtifactId?: string;
+}
+
+export interface QualityScores {
+  readonly deduplicationScore: number;
+  readonly businessValueScore: number;
+  readonly codeQualityScore: number;
+  readonly overallScore: number;
+}
+
+/**
+ * ----------------------------------------------------------------------------
+ * 12. ReviewReport Aggregate (Aggregate Root)
+ * ----------------------------------------------------------------------------
+ * Rationale:
+ * A comprehensive gate checking generated artifacts against tech standards,
+ * missing requirements coverage, duplicate checks, and low-value scripts.
+ */
+export interface ReviewReport {
+  readonly id: string;
+  readonly strategyId: string;
+  readonly checkedAt: Date;
+  readonly status: 'approved' | 'flagged' | 'rejected';
+  readonly issues: ReviewIssue[];
+  readonly scores: QualityScores;
+  readonly suggestions: string[];
+  readonly traceLogs: string[];
+}
+
+/**
+ * ----------------------------------------------------------------------------
+ * 13. KnowledgeEntry (Entity)
+ * ----------------------------------------------------------------------------
+ * Rationale:
+ * A single unit of QA memory — a bug pattern, a reusable test template,
+ * or a lesson learned from a previous analysis run. Entries accumulate
+ * over time, making QAMate progressively smarter.
+ */
+export type KnowledgeCategory =
+  'bug-pattern' | 'test-template' | 'lesson-learned' | 'common-defect' | 'reusable-assertion';
+
+export interface KnowledgeEntry {
+  readonly id: string;
+  readonly category: KnowledgeCategory;
+  readonly title: string;
+  readonly description: string;
+  readonly keywords: string[];
+  readonly sourceRequirementId?: string;
+  readonly sourceArtifactId?: string;
+  readonly confidence: number;
+  readonly createdAt: Date;
+}
+
+/**
+ * ----------------------------------------------------------------------------
+ * 14. KnowledgeQuery (Value Object)
+ * ----------------------------------------------------------------------------
+ * Rationale:
+ * Represents a lookup request against the knowledge store — used to find
+ * similar past requirements, reusable templates, or known bug patterns.
+ */
+export interface KnowledgeQuery {
+  readonly keywords: string[];
+  readonly category?: KnowledgeCategory;
+  readonly minConfidence?: number;
+  readonly maxResults?: number;
+}
+
+/**
+ * ----------------------------------------------------------------------------
+ * 15. KnowledgeResult (Value Object)
+ * ----------------------------------------------------------------------------
+ * Rationale:
+ * The response from a knowledge query, containing matched entries
+ * ranked by relevance score.
+ */
+export interface KnowledgeResult {
+  readonly query: KnowledgeQuery;
+  readonly matches: Array<{
+    entry: KnowledgeEntry;
+    relevanceScore: number;
+  }>;
+  readonly searchedAt: Date;
+}
+
+export type CoverageStatus = 'full' | 'partial' | 'uncovered';
+
+export interface CoverageItem {
+  readonly id: string;
+  readonly targetId: string;
+  readonly targetType: 'business-rule' | 'risk-area' | 'actor';
+  readonly description: string;
+  readonly status: CoverageStatus;
+  readonly matchedScenarios: string[];
+  readonly gapExplanation?: string;
+}
+
+/**
+ * ----------------------------------------------------------------------------
+ * 16. CoverageReport Aggregate (Aggregate Root)
+ * ----------------------------------------------------------------------------
+ * Rationale:
+ * A compiled traceability summary detailing rules coverage and gap diagnostics.
+ */
+export interface CoverageReport {
+  readonly id: string;
+  readonly strategyId: string;
+  readonly checkedAt: Date;
+  readonly overallCoveragePercent: number;
+  readonly items: CoverageItem[];
+  readonly traceLogs: string[];
+}
+
+/**
+ * ----------------------------------------------------------------------------
+ * 17. ProviderConfig (Value Object)
+ * ----------------------------------------------------------------------------
+ * Rationale:
+ * Configuration parameters for AI completions engines, allowing dynamic
+ * targeting of Google, OpenAI, Anthropic, or local Ollama servers.
+ */
+export interface ProviderConfig {
+  readonly providerId: 'openai' | 'gemini' | 'claude' | 'ollama' | 'mock';
+  readonly apiKey?: string;
+  readonly apiEndpoint?: string;
+  readonly modelName: string;
+  readonly temperature?: number;
+}

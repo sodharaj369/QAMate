@@ -4,11 +4,27 @@
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "qamate.analyze",
+        "title": "QAMate: Analyze Active Requirement File"
+      }
+    ]
+  },
   "scripts": {
     "build": "tsc --build",
     "clean": "tsc --build --clean"
   },
   "dependencies": {
-    "@qamate/engine": "*"
+    "@qamate/engine": "*",
+    "@qamate/shared": "*"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.75.0"
   }
 }

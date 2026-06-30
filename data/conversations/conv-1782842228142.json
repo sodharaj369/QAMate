@@ -1,0 +1,262 @@
+{
+  "id": "conv-1782842228142",
+  "projectId": "proj-demo",
+  "requirementId": "req-0374",
+  "status": "ready-for-generation",
+  "currentIntelligence": {
+    "requirementId": "req-0374",
+    "analyzedAt": "2026-06-30T17:56:20.378Z",
+    "actors": [
+      {
+        "name": "RegisteredUser",
+        "description": "Extracted actor from user story template: \"As a RegisteredUser, I want to apply a coupon code to my Cart, so that I can see the discounted total.\""
+      }
+    ],
+    "entities": [
+      {
+        "name": "SystemState",
+        "properties": [
+          "id",
+          "status"
+        ],
+        "relationships": []
+      }
+    ],
+    "businessRules": [
+      {
+        "id": "BR-001",
+        "description": "1. The RegisteredUser must enter a valid coupon code in the voucher field.",
+        "condition": "Always active",
+        "expectedOutcome": "1. The RegisteredUser must enter a valid coupon code in the voucher field."
+      },
+      {
+        "id": "BR-002",
+        "description": "2. If the coupon is active, the system should apply the discount percentage immediately.",
+        "condition": "2. If the coupon is active, the system",
+        "expectedOutcome": "apply the discount percentage immediately."
+      },
+      {
+        "id": "BR-003",
+        "description": "3. Only one coupon can be applied per checkout transaction.",
+        "condition": "Always active",
+        "expectedOutcome": "3. Only one coupon can be applied per checkout transaction."
+      },
+      {
+        "id": "BR-004",
+        "description": "4. The system must recalculate the total cart price and display the discounted price fast.",
+        "condition": "Always active",
+        "expectedOutcome": "4. The system must recalculate the total cart price and display the discounted price fast."
+      }
+    ],
+    "ambiguities": [
+      {
+        "id": "AMB-001",
+        "description": "Conditional statement lacks alternative branch (e.g. \"else\" or \"failure path\").",
+        "locationSnippet": "2. If the coupon is active, the system should apply the discount percentage immediately.",
+        "severity": "high"
+      },
+      {
+        "id": "AMB-002",
+        "description": "Vague term \"fast\" detected. Define target execution time in ms (e.g., < 200ms).",
+        "locationSnippet": "4. The system must recalculate the total cart price and display the discounted price fast.",
+        "severity": "medium"
+      },
+      {
+        "id": "AMB-003",
+        "description": "Passive voice indicates actions without declaring the triggering actor or system.",
+        "locationSnippet": "The user is redirected to the checkout page after coupon application.",
+        "severity": "low"
+      }
+    ],
+    "missingInformation": [
+      {
+        "description": "No error paths, input validation errors, or recovery strategies are described.",
+        "category": "error-handling",
+        "impactSeverity": "high"
+      },
+      {
+        "description": "User access levels or operation permissions are not specified.",
+        "category": "permissions-auth",
+        "impactSeverity": "high"
+      },
+      {
+        "description": "Strict format guidelines (e.g. date shapes, telephone numbers, emails) are missing.",
+        "category": "data-formats",
+        "impactSeverity": "high"
+      }
+    ],
+    "riskAreas": [
+      {
+        "area": "Risk-001: error-handling",
+        "description": "Testing blocked on: \"No error paths, input validation errors, or recovery strategies are described.\" - Tests cannot cover validation error boundaries, leaving security and stability paths unverified.",
+        "severity": "high"
+      },
+      {
+        "area": "Risk-002: permissions-auth",
+        "description": "Testing blocked on: \"User access levels or operation permissions are not specified.\" - Unauthorized request boundaries (e.g. attempting actions as a guest) cannot be verified.",
+        "severity": "high"
+      },
+      {
+        "area": "Risk-003: data-formats",
+        "description": "Testing blocked on: \"Strict format guidelines (e.g. date shapes, telephone numbers, emails) are missing.\" - Valid vs invalid format test strings cannot be validated dynamically.",
+        "severity": "high"
+      }
+    ],
+    "complexity": {
+      "level": "medium",
+      "factors": [],
+      "rationale": "Graded as low due to low rule count (4 rules) and clean conditional flow."
+    },
+    "confidenceScore": 0.48
+  },
+  "candidates": [
+    {
+      "id": "CAND-001",
+      "conversationId": "conv-req-0374",
+      "text": "How should the system handle validation errors or network failures for the \"user_story_sample\" feature?",
+      "type": "single-choice",
+      "options": [
+        "Return a 400 Bad Request JSON response",
+        "Redirect with query parameters",
+        "Display a localized modal error message"
+      ],
+      "category": "ERROR HANDLING",
+      "impact": "blocking-test-strategy",
+      "rationale": "Determines validation outcome formats. Required for response code verification.",
+      "skipRisk": "WARNING: Skipping will prevent writing API-level validation error assertion steps.",
+      "priority": "medium"
+    },
+    {
+      "id": "CAND-002",
+      "conversationId": "conv-req-0374",
+      "text": "Which user roles or access levels are authorized to trigger this feature?",
+      "type": "single-choice",
+      "options": [
+        "Any RegisteredUser only",
+        "Requires Admin role access",
+        "Guest/Anonymous access allowed"
+      ],
+      "category": "PERMISSIONS AUTH",
+      "impact": "blocking-test-strategy",
+      "rationale": "Decides security access mapping. Crucial for boundary test case design.",
+      "skipRisk": "WARNING: Skipping this auth question will result in missing security regression test matrices.",
+      "priority": "high"
+    },
+    {
+      "id": "CAND-003",
+      "conversationId": "conv-req-0374",
+      "text": "What specific format constraints (e.g. email patterns, date schemas, telephone shapes) apply here?",
+      "type": "open-text",
+      "category": "DATA FORMATS",
+      "impact": "optional",
+      "rationale": "Non-blocking enhancement detail. Good to have, but does not block suite compilation.",
+      "skipRisk": "No risk. Minor impact on non-critical scope details.",
+      "priority": "low"
+    },
+    {
+      "id": "CAND-004",
+      "conversationId": "conv-req-0374",
+      "text": "The requirement statement \"2. If the coupon is active, the system should apply the discount percentage immediately.\" was flagged as ambiguous. Can you clarify: Conditional statement lacks alternative branch (e.g. \"else\" or \"failure path\").?",
+      "type": "open-text",
+      "category": "AMBIGUITY",
+      "impact": "optional",
+      "rationale": "Non-blocking enhancement detail. Good to have, but does not block suite compilation.",
+      "skipRisk": "No risk. Minor impact on non-critical scope details.",
+      "priority": "low"
+    },
+    {
+      "id": "CAND-005",
+      "conversationId": "conv-req-0374",
+      "text": "The requirement statement \"4. The system must recalculate the total cart price and display the discounted price fast.\" was flagged as ambiguous. Can you clarify: Vague term \"fast\" detected. Define target execution time in ms (e.g., < 200ms).?",
+      "type": "open-text",
+      "category": "AMBIGUITY",
+      "impact": "optional",
+      "rationale": "Non-blocking enhancement detail. Good to have, but does not block suite compilation.",
+      "skipRisk": "No risk. Minor impact on non-critical scope details.",
+      "priority": "low"
+    },
+    {
+      "id": "CAND-006",
+      "conversationId": "conv-req-0374",
+      "text": "The requirement statement \"The user is redirected to the checkout page after coupon application.\" was flagged as ambiguous. Can you clarify: Passive voice indicates actions without declaring the triggering actor or system.?",
+      "type": "open-text",
+      "category": "AMBIGUITY",
+      "impact": "optional",
+      "rationale": "Non-blocking enhancement detail. Good to have, but does not block suite compilation.",
+      "skipRisk": "No risk. Minor impact on non-critical scope details.",
+      "priority": "low"
+    }
+  ],
+  "questions": [
+    {
+      "id": "Q-002",
+      "conversationId": "conv-req-0374",
+      "text": "Which user roles or access levels are authorized to trigger this feature?",
+      "type": "single-choice",
+      "options": [
+        "Any RegisteredUser only",
+        "Requires Admin role access",
+        "Guest/Anonymous access allowed"
+      ],
+      "category": "PERMISSIONS AUTH",
+      "impact": "blocking-test-strategy",
+      "rationale": "Decides security access mapping. Crucial for boundary test case design.",
+      "skipRisk": "WARNING: Skipping this auth question will result in missing security regression test matrices.",
+      "priority": "high",
+      "status": "answered",
+      "answer": {
+        "questionId": "Q-002",
+        "selectedOptions": [
+          "Any RegisteredUser only"
+        ],
+        "answeredAt": "2026-06-30T17:57:29.632Z",
+        "answeredBy": "QA Engineer"
+      }
+    },
+    {
+      "id": "Q-001",
+      "conversationId": "conv-req-0374",
+      "text": "How should the system handle validation errors or network failures for the \"user_story_sample\" feature?",
+      "type": "single-choice",
+      "options": [
+        "Return a 400 Bad Request JSON response",
+        "Redirect with query parameters",
+        "Display a localized modal error message"
+      ],
+      "category": "ERROR HANDLING",
+      "impact": "blocking-test-strategy",
+      "rationale": "Determines validation outcome formats. Required for response code verification.",
+      "skipRisk": "WARNING: Skipping will prevent writing API-level validation error assertion steps.",
+      "priority": "medium",
+      "status": "answered",
+      "answer": {
+        "questionId": "Q-001",
+        "selectedOptions": [
+          "Return a 400 Bad Request JSON response"
+        ],
+        "answeredAt": "2026-06-30T17:57:58.920Z",
+        "answeredBy": "QA Engineer"
+      }
+    }
+  ],
+  "answers": [
+    {
+      "questionId": "Q-002",
+      "selectedOptions": [
+        "Any RegisteredUser only"
+      ],
+      "answeredAt": "2026-06-30T17:57:29.632Z",
+      "answeredBy": "QA Engineer"
+    },
+    {
+      "questionId": "Q-001",
+      "selectedOptions": [
+        "Return a 400 Bad Request JSON response"
+      ],
+      "answeredAt": "2026-06-30T17:57:58.920Z",
+      "answeredBy": "QA Engineer"
+    }
+  ],
+  "createdAt": "2026-06-30T17:57:08.142Z",
+  "updatedAt": "2026-06-30T17:57:58.920Z"
+}

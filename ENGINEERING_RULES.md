@@ -28,3 +28,15 @@ This document defines the strict engineering guidelines and principles for **QAM
 
 1. **Scope Contained PRs**: Limit each pull request or development branch to one feature or task.
 2. **Conventional Commits**: Adhere to conventional commit prefix specifications (`feat(scope):`, `fix(scope):`, `docs(scope):`).
+
+---
+
+## 🤖 AI Quality Checklist (Definition of Done)
+
+Every sprint delivery and AI generation module must satisfy the following checklist before merging:
+- [ ] **No Hallucinations**: Did this module invent any information not present in the input requirements or context?
+- [ ] **Explainability**: Can the module explain every recommendation or analysis result with traceability logs or reasoning steps?
+- [ ] **Honesty**: Can it explicitly say "I don't know" or raise a clarification query if information is insufficient?
+- [ ] **Traceability**: Is every output traceable back to a source Requirement?
+- [ ] **Fail-Safe**: Are there unit tests for failure and edge cases (e.g. invalid inputs, missing fields, or empty lists)?
+

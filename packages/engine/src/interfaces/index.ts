@@ -8,6 +8,15 @@ import {
   Conversation,
   ProjectConfig,
   TestStrategy,
+  UserPersona,
+  ProjectProfile,
+  ArtifactPlan,
+  QAArtifact,
+  ReviewReport,
+  KnowledgeEntry,
+  KnowledgeQuery,
+  KnowledgeResult,
+  CoverageReport,
 } from '../domain.js';
 import {
   GeneratorContext,
@@ -136,23 +145,77 @@ export interface ITestStrategyEngine {
 }
 
 /**
+ * Artifact Planner Module
+ * Maps engineering personas and stack profiles to selective artifact plans.
+ */
+export interface IArtifactPlanner {
+  planArtifacts(
+    strategy: TestStrategy,
+    persona: UserPersona,
+    profile: ProjectProfile,
+  ): Promise<ArtifactPlan>;
+}
+
+/**
+ * Artifact Generator Module
+ * Assembles templates and executes provider calls to construct files.
+ */
+export interface IArtifactGenerator {
+  generateArtifacts(
+    context: GeneratorContext,
+    plan: ArtifactPlan,
+    provider: ILLMProvider,
+  ): Promise<QAArtifact[]>;
+}
+
+/**
+ * Review Engine Module
+ * Analyzes generated artifacts against context standards to evaluate Quality Gates.
+ */
+export interface IReviewEngine {
+  reviewArtifacts(
+    artifacts: QAArtifact[],
+    context: GeneratorContext,
+    strategy: TestStrategy,
+  ): Promise<ReviewReport>;
+}
+
+/**
+ * Knowledge Engine Module
+ * Persistent QA memory layer for bug patterns, templates, and similar requirement matching.
+ */
+export interface IKnowledgeEngine {
+  extractKnowledge(
+    artifacts: QAArtifact[],
+    intelligence: RequirementIntelligenceReport,
+    review: ReviewReport,
+  ): Promise<KnowledgeEntry[]>;
+
+  queryKnowledge(query: KnowledgeQuery): Promise<KnowledgeResult>;
+
+  findSimilarRequirements(requirement: Requirement): Promise<KnowledgeResult>;
+
+  getStore(): KnowledgeEntry[];
+}
+
+/**
+ * Coverage Engine Module
+ * Analyzes rule coverage metrics across strategies and outputs.
+ */
+export interface ICoverageEngine {
+  calculateCoverage(
+    strategy: TestStrategy,
+    artifacts: QAArtifact[],
+    intelligence: RequirementIntelligenceReport,
+  ): Promise<CoverageReport>;
+}
+
+/**
  * Test Generator Module
  * Generates the initial suite of test cases utilizing the gathered context.
  */
 export interface ITestGenerator {
   generate(context: GeneratorContext, provider: ILLMProvider): Promise<TestCase[]>;
-}
-
-/**
- * Review Engine Module
- * Post-processes test cases to remove duplicates and ensure strict compliance with standards.
- */
-export interface IReviewEngine {
-  deduplicate(testCases: TestCase[]): TestCase[];
-  verifyStandardCompliance(testCases: TestCase[]): Promise<{
-    passed: boolean;
-    feedback: string[];
-  }>;
 }
 
 /**
@@ -191,4 +254,56 @@ export interface IConversationManager {
       payload: unknown;
     },
   ): Promise<Conversation>;
+}
+
+/**
+ * Conversation Storage Module
+ * Persistence adapter interface for managing saved conversation states.
+ */
+export interface IConversationStorage {
+  saveConversation(conversation: Conversation): Promise<void>;
+  loadConversation(conversationId: string): Promise<Conversation | undefined>;
+  listConversations(): Promise<string[]>;
+}
+
+/**
+ * Knowledge Storage Module
+ * Persistence adapter interface for managing accumulated memory units.
+ */
+export interface IKnowledgeStorage {
+  saveKnowledge(entries: KnowledgeEntry[]): Promise<void>;
+  loadKnowledge(): Promise<KnowledgeEntry[]>;
+}
+
+/**
+ * Azure DevOps Persistence Adapter
+ * Provides integration contracts to fetch specs from ADO Work Items and publish tests.
+ */
+export interface IADOPersistenceAdapter {
+  importWorkItem(
+    workItemId: string,
+    org: string,
+    project: string,
+    pat: string,
+  ): Promise<Requirement>;
+
+  exportTestCases(
+    testCases: TestCase[],
+    workItemId: string,
+    org: string,
+    project: string,
+    pat: string,
+  ): Promise<void>;
+}
+
+/**
+ * Platform Integration Interfaces
+ */
+export interface IWorkItemProvider {
+  fetchWorkItem(id: string): Promise<Requirement>;
+}
+
+export interface IStorageProvider {
+  save(key: string, data: unknown): Promise<void>;
+  load(key: string): Promise<unknown>;
 }
