@@ -1,0 +1,31 @@
+{
+  "name": "qamate-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "lint": "eslint packages/*/src/**/*.ts",
+    "lint:fix": "eslint packages/*/src/**/*.ts --fix",
+    "format": "prettier --write \"packages/*/src/**/*.ts\" \"eslint.config.js\" \"README.md\" \"CONTRIBUTING.md\"",
+    "format:check": "prettier --check \"packages/*/src/**/*.ts\" \"eslint.config.js\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "analyze": "node packages/engine/dist/cli.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.5.0",
+    "@types/node": "^26.0.1",
+    "eslint": "^9.5.0",
+    "prettier": "^3.3.2",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^1.6.0"
+  }
+}
