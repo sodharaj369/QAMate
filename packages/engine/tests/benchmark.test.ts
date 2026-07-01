@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DefaultCoverageEngine } from '../src/coverage/coverageEngine.js';
+import { DefaultCoverageEngine } from '../src/coverage-engine/coverageEngine.js';
 import { DefaultKnowledgeEngine } from '../src/knowledge/knowledgeEngine.js';
 import { SafetyScanner } from '../src/review/safetyScanner.js';
 import { QAArtifact, TestStrategy } from '../src/domain.js';

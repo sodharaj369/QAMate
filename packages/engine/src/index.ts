@@ -8,7 +8,7 @@ export * from './strategy/index.js';
 export * from './artifacts/index.js';
 export * from './review/index.js';
 export * from './knowledge/index.js';
-export * from './coverage/index.js';
+export * from './coverage-engine/index.js';
 export * from './providers/index.js';
 export * from './storage/index.js';
 export * from './integrations/index.js';

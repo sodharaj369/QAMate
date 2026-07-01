@@ -1,4 +1,5 @@
 import { GeneratorContext } from '../types.js';
+import { BusinessRule } from '../domain.js';
 
 export class TestCasesFactory {
   public static generateCases(context: GeneratorContext, type: string, persona: string): string {
@@ -26,7 +27,7 @@ export class TestCasesFactory {
     // 1. Positive Checklist
     sections.push(`#### 🟢 Positive Test Cases (Functional Verification)`);
     if (rules.length > 0) {
-      rules.forEach((rule, idx) => {
+      rules.forEach((rule: BusinessRule, idx: number) => {
         sections.push(
           `- [ ] **TC-POS-${idx + 1}**: Verify rule [${rule.id}] - "${rule.expectedOutcome}" under condition: "${rule.condition}".`,
         );

@@ -26,7 +26,7 @@ import {
 import { DefaultTestStrategyEngine } from './strategy/index.js';
 import { DefaultReviewEngine, SafetyScanner } from './review/index.js';
 import { DefaultKnowledgeEngine } from './knowledge/index.js';
-import { DefaultCoverageEngine } from './coverage/index.js';
+import { DefaultCoverageEngine } from './coverage-engine/index.js';
 import { LLMProviderFactory } from './providers/index.js';
 import { DefaultADOAdapter } from './integrations/index.js';
 import {
@@ -43,6 +43,9 @@ import {
   ProjectConfig,
   UserPersona,
   ProjectProfile,
+  QAArtifact,
+  KnowledgeEntry,
+  CoverageItem,
 } from './domain.js';
 import { GenerationPreferences } from './types.js';
 
@@ -136,7 +139,7 @@ async function main() {
       const sessionChoice = await rl.question('Select choice (1-2) [1]: ');
       if (sessionChoice.trim() === '2') {
         console.log('\nSelect session to load:');
-        existingSessions.forEach((sid, idx) => console.log(`  ${idx + 1}. ${sid}`));
+        existingSessions.forEach((sid: string, idx: number) => console.log(`  ${idx + 1}. ${sid}`));
         const choiceIdxStr = await rl.question(`Select session (1-${existingSessions.length}): `);
         const choiceIdx = parseInt(choiceIdxStr, 10) - 1;
         if (choiceIdx >= 0 && choiceIdx < existingSessions.length) {
@@ -320,7 +323,7 @@ async function main() {
         let inputAnswer = '';
         if (q.type === 'single-choice' && q.options) {
           console.log('Options:');
-          q.options.forEach((opt, idx) => console.log(`  [${idx + 1}] ${opt}`));
+          q.options.forEach((opt: string, idx: number) => console.log(`  [${idx + 1}] ${opt}`));
           console.log(`  [S] Skip this question`);
 
           while (true) {
@@ -559,7 +562,7 @@ async function main() {
     );
     console.log(`------------------------------------------------------`);
     console.log(`🧠 QA Strategy Reasoning Trace:`);
-    testStrategy.reasoningTrace.forEach((traceStep, idx) => {
+    testStrategy.reasoningTrace.forEach((traceStep: string, idx: number) => {
       console.log(`  ${idx + 1}. ${traceStep}`);
     });
     console.log(`======================================================\n`);
@@ -613,7 +616,7 @@ async function main() {
     artifactPlan.generationInstructions.forEach((inst) => console.log(`  - ${inst}`));
     console.log(`------------------------------------------------------`);
     console.log(`🧠 Planning Decision Reasoning:`);
-    artifactPlan.reasoning.forEach((reasonStep, idx) => {
+    artifactPlan.reasoning.forEach((reasonStep: string, idx: number) => {
       console.log(`  ${idx + 1}. ${reasonStep}`);
     });
     console.log(`======================================================\n`);
@@ -629,7 +632,7 @@ async function main() {
     console.log(`Total Artifacts Mapped:   ${artifacts.length}`);
     console.log(`AI Provider Employed:     ${activeProvider.name} (Model: ${modelName})`);
     console.log(`------------------------------------------------------`);
-    artifacts.forEach((art, idx) => {
+    artifacts.forEach((art: QAArtifact, idx: number) => {
       console.log(`\n[Artifact ${idx + 1}/${artifacts.length}] Type: ${art.type} (ID: ${art.id})`);
       console.log(`------------------------------------------------------`);
       console.log(art.content);
@@ -671,13 +674,13 @@ async function main() {
       console.log('✔ No enhancement suggestions.');
     } else {
       console.log('Suggestions for Improvement:');
-      reviewReport.suggestions.forEach((sug) => {
+      reviewReport.suggestions.forEach((sug: string) => {
         console.log(`  - ${sug}`);
       });
     }
     console.log(`------------------------------------------------------`);
     console.log(`🧠 Quality Gate Reasoning Trace:`);
-    reviewReport.traceLogs.forEach((traceStep, idx) => {
+    reviewReport.traceLogs.forEach((traceStep: string, idx: number) => {
       console.log(`  ${idx + 1}. ${traceStep}`);
     });
     console.log(`======================================================\n`);
@@ -695,7 +698,7 @@ async function main() {
       if (!report.isSafe) {
         safetyViolationsCount += report.issues.length;
         console.log(`⚠️  Artifact [${artId}] is UNSAFE:`);
-        report.issues.forEach((issue) => {
+        report.issues.forEach((issue: any) => {
           console.log(
             `  - [${issue.severity.toUpperCase()}] ${issue.message} (Trigger: "${issue.triggerText}")`,
           );
@@ -735,13 +738,13 @@ async function main() {
       grouped.set(entry.category, (grouped.get(entry.category) || 0) + 1);
     }
     console.log('📊 Entries by Category:');
-    grouped.forEach((count, category) => {
+    grouped.forEach((count: number, category: string) => {
       console.log(`  [${category}]: ${count} entries`);
     });
 
     console.log(`------------------------------------------------------`);
     console.log('📋 Extracted Knowledge Entries:');
-    knowledgeEntries.forEach((entry, idx) => {
+    knowledgeEntries.forEach((entry: KnowledgeEntry, idx: number) => {
       console.log(`  ${idx + 1}. [${entry.category.toUpperCase()}] ${entry.title}`);
       console.log(
         `     ${entry.description.slice(0, 100)}${entry.description.length > 100 ? '...' : ''}`,
@@ -757,7 +760,7 @@ async function main() {
       );
     } else {
       console.log(`🔍 Similar Requirements Found [${similarResult.matches.length}]:`);
-      similarResult.matches.forEach((match) => {
+      similarResult.matches.forEach((match: any) => {
         console.log(
           `  - [${match.entry.title}] Relevance: ${Math.round(match.relevanceScore * 100)}%`,
         );
@@ -781,7 +784,7 @@ async function main() {
     console.log(`Total Targets Tracked:  ${coverageReport.items.length}`);
     console.log(`------------------------------------------------------`);
     console.log('📋 Target Coverage Traceability:');
-    coverageReport.items.forEach((item, idx) => {
+    coverageReport.items.forEach((item: CoverageItem, idx: number) => {
       let statusIndicator = '🟢 FULL';
       if (item.status === 'partial') {
         statusIndicator = '🟡 PARTIAL';
@@ -802,7 +805,7 @@ async function main() {
     });
     console.log(`------------------------------------------------------`);
     console.log(`🧠 Coverage Analysis Trace:`);
-    coverageReport.traceLogs.forEach((traceStep, idx) => {
+    coverageReport.traceLogs.forEach((traceStep: string, idx: number) => {
       console.log(`  ${idx + 1}. ${traceStep}`);
     });
     console.log(`======================================================\n`);

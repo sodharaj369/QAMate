@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { RequirementIntelligenceReport, QAArtifact, TestStrategy, Actor, BusinessRule, RiskArea } from '../src/domain.js';
-import { DefaultCoverageEngine } from '../src/coverage/index.js';
+import { DefaultCoverageEngine } from '../src/coverage-engine/index.js';
 
 const mockActor: Actor = {
   name: 'SysAdmin',

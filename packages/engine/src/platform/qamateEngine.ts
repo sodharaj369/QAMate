@@ -29,7 +29,7 @@ import {
   MockLLMProvider,
 } from '../artifacts/index.js';
 import { DefaultReviewEngine } from '../review/index.js';
-import { DefaultCoverageEngine } from '../coverage/index.js';
+import { DefaultCoverageEngine } from '../coverage-engine/index.js';
 
 export class QAMateEngine {
   constructor(private readonly storage: IConversationStorage) {}
