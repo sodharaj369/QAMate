@@ -1,6 +1,7 @@
 import { GeneratorContext } from '../types.js';
 import { ArtifactPlan, QAArtifact } from '../domain.js';
 import { IArtifactGenerator, ILLMProvider } from '../interfaces/index.js';
+import { TestCasesFactory } from './testCasesFactory.js';
 
 export class DefaultArtifactGenerator implements IArtifactGenerator {
   public async generateArtifacts(
@@ -31,7 +32,7 @@ export class DefaultArtifactGenerator implements IArtifactGenerator {
         response.includes('MOCK_COMPLETION')
       ) {
         // Fallback to high-quality rule-based templates for offline golden dataset runs
-        content = this.getMockContentForPersona(type, plan);
+        content = this.getMockContentForPersona(type, plan, context);
       } else {
         // Parse section from the provider completion response
         content = this.extractSection(response, type);
@@ -40,7 +41,7 @@ export class DefaultArtifactGenerator implements IArtifactGenerator {
           if (artifacts.length === 0) {
             content = response;
           } else {
-            content = this.getMockContentForPersona(type, plan);
+            content = this.getMockContentForPersona(type, plan, context);
           }
         }
       }
@@ -108,7 +109,10 @@ Please format your response by placing each artifact under its respective Markdo
     return sectionLines.join('\n').trim();
   }
 
-  private getMockContentForPersona(type: string, plan: ArtifactPlan): string {
+  private getMockContentForPersona(type: string, plan: ArtifactPlan, context?: GeneratorContext): string {
+    if (context) {
+      return TestCasesFactory.generateCases(context, type, plan.persona);
+    }
     const testingStyle = plan.profile.testingStyle || 'AAA';
     switch (plan.persona) {
       case 'manual-qa':

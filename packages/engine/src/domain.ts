@@ -42,6 +42,16 @@ export interface ProjectConfig {
   namingConvention: string;
   companyRules: string[];
   qaGuidelines: string[];
+  playbook?: {
+    rules: {
+      ruleId: string;
+      enabled: boolean;
+      severity: 'error' | 'warning';
+      customMessage?: string;
+      keywordTriggers?: string[];
+    }[];
+    customCriteriaTemplate?: string;
+  };
 }
 
 /**
@@ -125,6 +135,7 @@ export interface MissingInformationGap {
     | 'permissions-auth'
     | 'data-formats'
     | 'non-functional-sla'
+    | 'database-models'
     | 'other';
   readonly impactSeverity: 'low' | 'medium' | 'high';
 }
@@ -475,7 +486,12 @@ export interface ReviewReport {
  * over time, making QAMate progressively smarter.
  */
 export type KnowledgeCategory =
-  'bug-pattern' | 'test-template' | 'lesson-learned' | 'common-defect' | 'reusable-assertion';
+  | 'bug-pattern'
+  | 'test-template'
+  | 'lesson-learned'
+  | 'common-defect'
+  | 'reusable-assertion'
+  | 'user-correction';
 
 export interface KnowledgeEntry {
   readonly id: string;

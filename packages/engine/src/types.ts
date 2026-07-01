@@ -20,6 +20,7 @@ export interface GeneratorContext {
   readonly projectConfig: ProjectConfig;
   readonly generationPreferences: GenerationPreferences;
   readonly compiledAt: Date;
+  readonly historicalCorrections?: string[];
 }
 
 /**

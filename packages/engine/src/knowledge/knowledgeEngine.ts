@@ -161,6 +161,24 @@ export class DefaultKnowledgeEngine implements IKnowledgeEngine {
     });
   }
 
+  public async learnFromCorrection(
+    requirementId: string,
+    questionText: string,
+    correctedAnswer: string,
+  ): Promise<KnowledgeEntry> {
+    const entry = this.createEntry(
+      'user-correction',
+      `Manual Correction: ${questionText.slice(0, 40)}...`,
+      `For requirement question "${questionText}", user correction/clarification is: "${correctedAnswer}"`,
+      this.extractKeywords(questionText + ' ' + correctedAnswer),
+      requirementId,
+      undefined,
+      0.95
+    );
+    this.store.push(entry);
+    return entry;
+  }
+
   // ── Store accessor ────────────────────────────────────────────────
 
   public getStore(): KnowledgeEntry[] {

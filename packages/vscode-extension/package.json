@@ -3,16 +3,86 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/extension.js",
   "engines": {
     "vscode": "^1.75.0"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "onView:qamate.sidebarView",
+    "onCommand:qamate.openWorkspace",
+    "onCommand:qamate.continueWorkflow",
+    "onCommand:qamate.startNewSession",
+    "onCommand:qamate.analyze"
+  ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "qamate-sidebar",
+          "title": "QAMate Workspace",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "qamate-sidebar": [
+        {
+          "type": "webview",
+          "id": "qamate.sidebarView",
+          "name": "QA Workspace Panel"
+        }
+      ]
+    },
     "commands": [
       {
+        "command": "qamate.openWorkspace",
+        "title": "QAMate: Open Workspace"
+      },
+      {
+        "command": "qamate.continueWorkflow",
+        "title": "QAMate: Continue Current Session"
+      },
+      {
+        "command": "qamate.startNewSession",
+        "title": "QAMate: Start New Session"
+      },
+      {
         "command": "qamate.analyze",
-        "title": "QAMate: Analyze Active Requirement File"
+        "title": "QAMate: Analyze Current File"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorTextFocus",
+          "command": "qamate.analyze",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceExtname == .md || resourceExtname == .json",
+          "command": "qamate.analyze",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "qamate.analyze",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "qamate.continueWorkflow",
+        "key": "ctrl+alt+c",
+        "mac": "cmd+alt+c"
+      },
+      {
+        "command": "qamate.startNewSession",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n"
       }
     ]
   },

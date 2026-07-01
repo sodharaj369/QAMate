@@ -1,0 +1,210 @@
+{
+  "id": "conv-dummy_spec",
+  "projectId": "vscode-project",
+  "requirementId": "req-dummy_spec",
+  "status": "planning-questions",
+  "currentIntelligence": {
+    "requirementId": "req-dummy_spec",
+    "analyzedAt": "2026-07-01T06:56:19.549Z",
+    "actors": [
+      {
+        "name": "User",
+        "description": "Default system user acting on the system."
+      }
+    ],
+    "entities": [
+      {
+        "name": "SystemState",
+        "properties": [
+          "id",
+          "status"
+        ],
+        "relationships": []
+      }
+    ],
+    "businessRules": [],
+    "ambiguities": [],
+    "missingInformation": [
+      {
+        "description": "No error paths, input validation errors, or recovery strategies are described.",
+        "category": "error-handling",
+        "impactSeverity": "high"
+      },
+      {
+        "description": "Input character sizes, numeric limits, or transaction limits are not defined.",
+        "category": "boundary-conditions",
+        "impactSeverity": "high"
+      },
+      {
+        "description": "User access levels or operation permissions are not specified.",
+        "category": "permissions-auth",
+        "impactSeverity": "high"
+      },
+      {
+        "description": "Strict format guidelines (e.g. date shapes, telephone numbers, emails) are missing.",
+        "category": "data-formats",
+        "impactSeverity": "high"
+      }
+    ],
+    "riskAreas": [
+      {
+        "area": "Risk-001: error-handling",
+        "description": "Testing blocked on: \"No error paths, input validation errors, or recovery strategies are described.\" - Tests cannot cover validation error boundaries, leaving security and stability paths unverified.",
+        "severity": "high"
+      },
+      {
+        "area": "Risk-002: boundary-conditions",
+        "description": "Testing blocked on: \"Input character sizes, numeric limits, or transaction limits are not defined.\" - Without limit specs, boundary value analysis (BVA) test steps cannot be derived.",
+        "severity": "high"
+      },
+      {
+        "area": "Risk-003: permissions-auth",
+        "description": "Testing blocked on: \"User access levels or operation permissions are not specified.\" - Unauthorized request boundaries (e.g. attempting actions as a guest) cannot be verified.",
+        "severity": "high"
+      },
+      {
+        "area": "Risk-004: data-formats",
+        "description": "Testing blocked on: \"Strict format guidelines (e.g. date shapes, telephone numbers, emails) are missing.\" - Valid vs invalid format test strings cannot be validated dynamically.",
+        "severity": "high"
+      }
+    ],
+    "complexity": {
+      "level": "low",
+      "factors": [],
+      "rationale": "Standard specification complexity."
+    },
+    "confidenceScore": 0.5
+  },
+  "candidates": [
+    {
+      "id": "CAND-001",
+      "conversationId": "conv-req-dummy_spec",
+      "text": "How should the system handle validation errors or network failures for the \"dummy_spec\" feature?",
+      "type": "single-choice",
+      "options": [
+        "Return a 400 Bad Request JSON response",
+        "Redirect with query parameters",
+        "Display a localized modal error message"
+      ],
+      "category": "ERROR HANDLING",
+      "impact": "blocking-test-strategy",
+      "rationale": "Determines validation outcome formats. Required for response code verification.",
+      "skipRisk": "WARNING: Skipping will prevent writing API-level validation error assertion steps.",
+      "priority": "medium"
+    },
+    {
+      "id": "CAND-002",
+      "conversationId": "conv-req-dummy_spec",
+      "text": "What are the boundary limits (e.g. min/max values, length boundaries) for input fields in this feature?",
+      "type": "single-choice",
+      "options": [
+        "Character limit 255, numbers 1-9999",
+        "No strict limits needed",
+        "Use standard browser HTML5 validations"
+      ],
+      "category": "BOUNDARY CONDITIONS",
+      "impact": "blocking-understanding",
+      "rationale": "No numeric or string size limits defined. Traditional boundary value analysis is blocked.",
+      "skipRisk": "WARNING: Skipping this boundaries question will lead to missing boundary limits test steps.",
+      "priority": "medium"
+    },
+    {
+      "id": "CAND-003",
+      "conversationId": "conv-req-dummy_spec",
+      "text": "Which user roles or access levels are authorized to trigger this feature?",
+      "type": "single-choice",
+      "options": [
+        "Any RegisteredUser only",
+        "Requires Admin role access",
+        "Guest/Anonymous access allowed"
+      ],
+      "category": "PERMISSIONS AUTH",
+      "impact": "blocking-test-strategy",
+      "rationale": "Decides security access mapping. Crucial for boundary test case design.",
+      "skipRisk": "WARNING: Skipping this auth question will result in missing security regression test matrices.",
+      "priority": "high"
+    },
+    {
+      "id": "CAND-004",
+      "conversationId": "conv-req-dummy_spec",
+      "text": "What specific format constraints (e.g. email patterns, date schemas, telephone shapes) apply here?",
+      "type": "open-text",
+      "category": "DATA FORMATS",
+      "impact": "optional",
+      "rationale": "Non-blocking enhancement detail. Good to have, but does not block suite compilation.",
+      "skipRisk": "No risk. Minor impact on non-critical scope details.",
+      "priority": "low"
+    }
+  ],
+  "questions": [
+    {
+      "id": "Q-003",
+      "conversationId": "conv-req-dummy_spec",
+      "text": "Which user roles or access levels are authorized to trigger this feature?",
+      "type": "single-choice",
+      "options": [
+        "Any RegisteredUser only",
+        "Requires Admin role access",
+        "Guest/Anonymous access allowed"
+      ],
+      "category": "PERMISSIONS AUTH",
+      "impact": "blocking-test-strategy",
+      "rationale": "Decides security access mapping. Crucial for boundary test case design.",
+      "skipRisk": "WARNING: Skipping this auth question will result in missing security regression test matrices.",
+      "priority": "high",
+      "status": "pending"
+    },
+    {
+      "id": "Q-001",
+      "conversationId": "conv-req-dummy_spec",
+      "text": "How should the system handle validation errors or network failures for the \"dummy_spec\" feature?",
+      "type": "single-choice",
+      "options": [
+        "Return a 400 Bad Request JSON response",
+        "Redirect with query parameters",
+        "Display a localized modal error message"
+      ],
+      "category": "ERROR HANDLING",
+      "impact": "blocking-test-strategy",
+      "rationale": "Determines validation outcome formats. Required for response code verification.",
+      "skipRisk": "WARNING: Skipping will prevent writing API-level validation error assertion steps.",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": "Q-002",
+      "conversationId": "conv-req-dummy_spec",
+      "text": "What are the boundary limits (e.g. min/max values, length boundaries) for input fields in this feature?",
+      "type": "single-choice",
+      "options": [
+        "Character limit 255, numbers 1-9999",
+        "No strict limits needed",
+        "Use standard browser HTML5 validations"
+      ],
+      "category": "BOUNDARY CONDITIONS",
+      "impact": "blocking-understanding",
+      "rationale": "No numeric or string size limits defined. Traditional boundary value analysis is blocked.",
+      "skipRisk": "WARNING: Skipping this boundaries question will lead to missing boundary limits test steps.",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": "Q-004",
+      "conversationId": "conv-req-dummy_spec",
+      "text": "What specific format constraints (e.g. email patterns, date schemas, telephone shapes) apply here?",
+      "type": "open-text",
+      "category": "DATA FORMATS",
+      "impact": "optional",
+      "rationale": "Non-blocking enhancement detail. Good to have, but does not block suite compilation.",
+      "skipRisk": "No risk. Minor impact on non-critical scope details.",
+      "priority": "low",
+      "status": "pending"
+    }
+  ],
+  "answers": [],
+  "createdAt": "2026-07-01T06:56:19.550Z",
+  "updatedAt": "2026-07-01T06:56:19.550Z",
+  "requirementTitle": "dummy_spec",
+  "requirementContent": "Mock requirement content",
+  "persona": "manual-qa"
+}

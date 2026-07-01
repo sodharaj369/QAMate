@@ -106,7 +106,7 @@ By passing this provider instance into the active modules (e.g., `IRequirementAn
 ## 🎯 Domain-Driven Design Rationale
 
 By implementing strict DDD boundaries:
-1. **Pristine Domain Layer**: The files [`domain.ts`](file:///d:/QAMate/packages/engine/src/domain.ts) and [`types.ts`](file:///d:/QAMate/packages/engine/src/types.ts) are written in pure TypeScript with zero third-party dependencies, guaranteeing portability.
+1. **Pristine Domain Layer**: The files [`domain.ts`](../packages/engine/src/domain.ts) and [`types.ts`](../packages/engine/src/types.ts) are written in pure TypeScript with zero third-party dependencies, guaranteeing portability.
 2. **Stateless UI**: Clients (like the VS Code extension) query the state of the active `Conversation` aggregate to figure out what to render, ensuring the client bundle remains small and isolated.
 3. **Traceability**: An immutable `Answer` maps to a distinct `Question` Entity, maintaining a clean audit log of decisions made by the QA engineer.
 4. **Shared Structured Knowledge Base Pattern**:

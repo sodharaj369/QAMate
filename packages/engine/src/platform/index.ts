@@ -7,3 +7,5 @@ export * from './telemetry.js';
 export * from './orchestrator.js';
 export * from './export.js';
 export * from './integration.js';
+export * from './uxDemo.js';
+export * from './qamateEngine.js';

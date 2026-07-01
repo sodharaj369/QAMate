@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Requirement, RequirementIntelligenceReport, ArtifactPlan, ProjectProfile, TestStrategy } from '../src/domain.js';
 import { GeneratorContext, ProjectConfig, GenerationPreferences } from '../src/types.js';
 import { DefaultContextCompiler } from '../src/context/index.js';
-import { DefaultArtifactGenerator, MockLLMProvider } from '../src/artifacts/index.js';
+import { DefaultArtifactGenerator, MockLLMProvider, TestCasesFactory } from '../src/artifacts/index.js';
 
 const mockProjectConfig: ProjectConfig = {
   targetLanguage: 'TypeScript',
@@ -94,9 +94,9 @@ describe('Artifact Generator tests', () => {
 
     expect(artifacts.length).toBe(2);
     expect(artifacts[0].type).toBe('Manual Test Cases');
-    expect(artifacts[0].content).toContain('TC-001: Anonymous Access Blocked');
+    expect(artifacts[0].content).toContain('Positive Test Cases');
     expect(artifacts[1].type).toBe('Regression Checklist');
-    expect(artifacts[1].content).toContain('Verify image rendering assets');
+    expect(artifacts[1].content).toContain('Negative Test Cases');
   });
 
   it('should parse and extract distinct artifact sections from LLM response headers', async () => {
@@ -153,5 +153,44 @@ test('should verify access', async () => {});
     expect(artifacts[0].content).toContain("test('should verify access'");
     expect(artifacts[1].type).toBe('Selectors Checklist');
     expect(artifacts[1].content).toContain('- button#save');
+  });
+
+  it('should tailor security and accessibility suggestions based on the domains in context', () => {
+    const requirement: Requirement = {
+      id: 'req-auth',
+      projectId: 'proj-1',
+      title: 'Login authentication feature',
+      content: 'System must handle secure login authentication actions.',
+      contentType: 'plain-text',
+      version: 1,
+      status: 'draft',
+      metadata: {},
+      createdAt: new Date(),
+    };
+
+    const mockCtx: GeneratorContext = {
+      requirement,
+      intelligence: {
+        requirementId: 'req-auth',
+        analyzedAt: new Date(),
+        actors: [],
+        entities: [],
+        businessRules: [],
+        ambiguities: [],
+        missingInformation: [],
+        riskAreas: [],
+        complexity: { level: 'low', factors: [], rationale: '' },
+        confidenceScore: 1.0,
+      },
+      answers: [],
+      projectConfig: mockProjectConfig,
+      preferences: mockGenerationPreferences,
+    };
+    (mockCtx as any).detectedDomains = ['Authentication'];
+
+    const content = TestCasesFactory.generateCases(mockCtx, 'Manual Test Cases', 'manual-qa');
+
+    expect(content).toContain('Security Vulnerability Checklist');
+    expect(content).toContain('Accessibility & UX Compliance');
   });
 });

@@ -138,4 +138,26 @@ describe('Knowledge Engine tests', () => {
     expect(bugPatterns.matches.length).toBeGreaterThanOrEqual(1);
     expect(bugPatterns.matches.every((m) => m.entry.category === 'bug-pattern')).toBe(true);
   });
+
+  it('should learn from manual user corrections and expose them via search', async () => {
+    const engine = new DefaultKnowledgeEngine();
+    
+    const entry = await engine.learnFromCorrection(
+      'req-5',
+      'Should we validate auth token expiry?',
+      'Yes, expiry must be exactly 3600 seconds.'
+    );
+
+    expect(entry.category).toBe('user-correction');
+    expect(entry.description).toContain('3600 seconds');
+    expect(engine.getStore()).toContainEqual(entry);
+
+    const queryResult = await engine.queryKnowledge({
+      keywords: ['validate', 'token', 'expiry'],
+      category: 'user-correction'
+    });
+
+    expect(queryResult.matches.length).toBeGreaterThan(0);
+    expect(queryResult.matches[0].entry.description).toContain('3600 seconds');
+  });
 });

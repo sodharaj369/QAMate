@@ -52,7 +52,8 @@ export type MissingInfoCategory =
   | 'boundary-conditions' // e.g., limits, range constraints, off-by-one triggers
   | 'permissions-auth' // e.g., Access lists, session expiry behaviors
   | 'data-formats' // e.g., String lengths, date formats, payload shapes
-  | 'non-functional-sla'; // e.g., performance response thresholds, timeout periods
+  | 'non-functional-sla' // e.g., performance response thresholds, timeout periods
+  | 'database-models';
 
 /**
  * Detailed report of missing information.

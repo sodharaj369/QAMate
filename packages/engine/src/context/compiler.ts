@@ -10,6 +10,24 @@ export class DefaultContextCompiler implements IContextCompiler {
     projectConfig: ProjectConfig,
     generationPreferences: GenerationPreferences,
   ): Promise<GeneratorContext> {
+    const historicalCorrections: string[] = [];
+    
+    try {
+      const { DefaultKnowledgeEngine } = await import('../knowledge/knowledgeEngine.js');
+      const knowledgeEngine = new DefaultKnowledgeEngine();
+      
+      const result = await knowledgeEngine.findSimilarRequirements(requirement);
+      if (result && result.matches) {
+        result.matches.forEach((m) => {
+          if (m.entry.category === 'user-correction') {
+            historicalCorrections.push(`${m.entry.title}: ${m.entry.description}`);
+          }
+        });
+      }
+    } catch {
+      // Safe fallback
+    }
+
     return {
       version: '1.0',
       requirement,
@@ -18,6 +36,7 @@ export class DefaultContextCompiler implements IContextCompiler {
       projectConfig,
       generationPreferences,
       compiledAt: new Date(),
+      historicalCorrections,
     };
   }
 }

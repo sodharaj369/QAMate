@@ -39,4 +39,6 @@ Every sprint delivery and AI generation module must satisfy the following checkl
 - [ ] **Honesty**: Can it explicitly say "I don't know" or raise a clarification query if information is insufficient?
 - [ ] **Traceability**: Is every output traceable back to a source Requirement?
 - [ ] **Fail-Safe**: Are there unit tests for failure and edge cases (e.g. invalid inputs, missing fields, or empty lists)?
+- [ ] **No Fake Intelligence**: The UI must never simulate AI output. If an engine capability is not yet implemented, the UI must explicitly communicate that the feature is unavailable. Production code must always display real engine output or an honest "not implemented" state.
+
 

@@ -5,7 +5,7 @@ vi.mock('vscode', () => {
   const registerCommand = vi.fn((_cmd, callback) => {
     return {
       dispose: () => {},
-      callback, // Keep reference so we can manually execute it in tests
+      callback,
     };
   });
 
@@ -22,15 +22,29 @@ vi.mock('vscode', () => {
           html: '',
         },
       })),
+      registerWebviewViewProvider: vi.fn(() => ({
+        dispose: () => {},
+      })),
+      onDidChangeActiveTextEditor: vi.fn(() => ({
+        dispose: () => {},
+      })),
+    },
+    workspace: {
+      workspaceFolders: undefined,
+      openTextDocument: vi.fn(),
     },
     ViewColumn: {
       Two: 2,
+    },
+    Uri: {
+      file: (p: string) => ({ fsPath: p }),
+      parse: (u: string) => ({ href: u }),
     },
   };
 });
 
 import * as vscode from 'vscode';
-import { activate, deactivate } from '../src/index.js';
+import { activate, deactivate } from '../src/extension.js';
 
 describe('VS Code Extension activation tests', () => {
   afterEach(() => {
@@ -40,12 +54,21 @@ describe('VS Code Extension activation tests', () => {
   it('should activate and register qamate.analyze command', () => {
     const mockContext = {
       subscriptions: [],
+      extensionUri: { fsPath: '/' },
+      workspaceState: {
+        get: vi.fn(),
+        update: vi.fn(),
+      },
     } as any;
 
     expect(() => activate(mockContext)).not.toThrow();
-    expect(mockContext.subscriptions.length).toBe(1);
+    expect(mockContext.subscriptions.length).toBe(5);
     expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
       'qamate.analyze',
+      expect.any(Function),
+    );
+    expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
+      'qamate.continueWorkflow',
       expect.any(Function),
     );
   });
@@ -53,13 +76,19 @@ describe('VS Code Extension activation tests', () => {
   it('should execute analyze callback and show error if no editor is open', async () => {
     const mockContext = {
       subscriptions: [],
+      extensionUri: { fsPath: '/' },
+      workspaceState: {
+        get: vi.fn(() => undefined),
+        update: vi.fn(),
+      },
     } as any;
 
     activate(mockContext);
 
     // Retrieve the registered callback
     const registerMock = vscode.commands.registerCommand as any;
-    const analyzeCallback = registerMock.mock.calls[0][1];
+    const analyzeCall = registerMock.mock.calls.find((call: any) => call[0] === 'qamate.analyze');
+    const analyzeCallback = analyzeCall[1];
 
     // Ensure activeTextEditor is undefined
     (vscode.window as any).activeTextEditor = undefined;
@@ -71,16 +100,22 @@ describe('VS Code Extension activation tests', () => {
     );
   });
 
-  it('should execute analyze callback and open webview panel if active editor is open', async () => {
+  it('should execute analyze callback and update view if active editor is open', async () => {
     const mockContext = {
       subscriptions: [],
+      extensionUri: { fsPath: '/' },
+      workspaceState: {
+        get: vi.fn(() => undefined),
+        update: vi.fn(),
+      },
     } as any;
 
     activate(mockContext);
 
     // Retrieve callback
     const registerMock = vscode.commands.registerCommand as any;
-    const analyzeCallback = registerMock.mock.calls[0][1];
+    const analyzeCall = registerMock.mock.calls.find((call: any) => call[0] === 'qamate.analyze');
+    const analyzeCallback = analyzeCall[1];
 
     // Setup active editor mock
     (vscode.window as any).activeTextEditor = {
@@ -93,9 +128,8 @@ describe('VS Code Extension activation tests', () => {
     await analyzeCallback();
 
     expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-      'QAMate: Starting analysis on dummy_spec.md...',
+      'QAMate: Started analysis on dummy_spec.md',
     );
-    expect(vscode.window.createWebviewPanel).toHaveBeenCalled();
   });
 
   it('should deactivate extension without throwing errors', () => {

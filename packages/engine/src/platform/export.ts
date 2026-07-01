@@ -69,4 +69,31 @@ export class ExportFramework {
       2,
     );
   }
+
+  /**
+   * Translates strategy and artifacts into a CSV spreadsheet.
+   */
+  public exportToCSV(strategy: TestStrategy, artifacts: QAArtifact[]): string {
+    let csv = `"Artifact ID","Type","Content"\n`;
+    artifacts.forEach((art) => {
+      const escapedContent = art.content.replace(/"/g, '""');
+      csv += `"${art.id}","${art.type}","${escapedContent}"\n`;
+    });
+    return csv;
+  }
+
+  /**
+   * Translates strategy and artifacts into an Excel-compatible spreadsheet format.
+   */
+  public exportToExcel(strategy: TestStrategy, artifacts: QAArtifact[]): string {
+    let html = `<html><head><meta charset="utf-8"></head><body>`;
+    html += `<h2>QA Test Strategy & Artifacts</h2>`;
+    html += `<table border="1">`;
+    html += `<tr style="background:#f5f5f5;"><th>Artifact ID</th><th>Type</th><th>Content</th></tr>`;
+    artifacts.forEach((art) => {
+      html += `<tr><td>${art.id}</td><td>${art.type}</td><td><pre>${art.content}</pre></td></tr>`;
+    });
+    html += `</table></body></html>`;
+    return html;
+  }
 }

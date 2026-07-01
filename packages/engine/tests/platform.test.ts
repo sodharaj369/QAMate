@@ -222,6 +222,14 @@ describe('Sprint 5C Platform Services tests', () => {
 
       const json = exporter.exportToJSON(mockStrategy, mockArtifacts);
       expect(JSON.parse(json).strategy.id).toBe('strat-1');
+
+      const csv = exporter.exportToCSV(mockStrategy, mockArtifacts);
+      expect(csv).toContain('"Artifact ID","Type","Content"');
+      expect(csv).toContain('"art-1","typescript"');
+
+      const xls = exporter.exportToExcel(mockStrategy, mockArtifacts);
+      expect(xls).toContain('<th>Artifact ID</th>');
+      expect(xls).toContain('<td>art-1</td>');
     });
   });
 });

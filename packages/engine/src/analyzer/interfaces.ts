@@ -71,3 +71,10 @@ export interface IRequirementAnalyzer {
     },
   ): Promise<RequirementAnalyzerResult>;
 }
+
+/**
+ * Detector responsible for categorizing the software domain scope and computing confidence ratings.
+ */
+export interface IDomainDetector {
+  detect(content: string): { domains: string[]; confidencePercent: number };
+}

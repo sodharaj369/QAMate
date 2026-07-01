@@ -51,6 +51,12 @@ import { GenerationPreferences } from './types.js';
  */
 async function main() {
   const args = process.argv.slice(2);
+  if (args.includes('--ux-demo')) {
+    const { runUxDemo } = await import('./platform/index.js');
+    await runUxDemo();
+    process.exit(0);
+  }
+
   if (args.length === 0) {
     console.error(
       'Error: Please provide the path to a requirement specification file or --ado <id>.',

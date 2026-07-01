@@ -275,6 +275,53 @@ export class RuleBasedAnalysisStrategy implements IAnalysisStrategy {
           severity: 'low',
         });
       }
+
+      // 4. Check unverified assumptions
+      const assumptionKeywords = ['assume', 'assuming', 'expected', 'presumed', 'probably', 'implicitly'];
+      for (const word of assumptionKeywords) {
+        const regex = new RegExp(`\\b${word}\\b`, 'i');
+        if (regex.test(line)) {
+          reports.push({
+            id: `AMB-${String(idCounter++).padStart(3, '0')}`,
+            type: 'implied-behavior',
+            description: `Implicit assumption detected: using "${word}". This should be verified explicitly in the requirement spec.`,
+            snippet: line,
+            severity: 'medium',
+          });
+        }
+      }
+
+      // 5. Check contradictions
+      const lowerLine = line.toLowerCase();
+      if (lowerLine.includes('must ') && lowerLine.includes('must not')) {
+        reports.push({
+          id: `AMB-${String(idCounter++).padStart(3, '0')}`,
+          type: 'contradiction',
+          description: 'Line contains potentially contradictory statements: both "must" and "must not" rules are defined in the same rule.',
+          snippet: line,
+          severity: 'high',
+        });
+      }
+      if (lowerLine.includes('enable') && lowerLine.includes('disable') && lowerLine.includes('anonymous')) {
+        reports.push({
+          id: `AMB-${String(idCounter++).padStart(3, '0')}`,
+          type: 'contradiction',
+          description: 'Line contains contradictory statements regarding anonymous access (both enable and disable keywords found).',
+          snippet: line,
+          severity: 'high',
+        });
+      }
+    }
+
+    const fullTextLower = lines.join('\n').toLowerCase();
+    if (fullTextLower.includes('anonymous access is enabled') && fullTextLower.includes('anonymous access is disabled')) {
+      reports.push({
+        id: `AMB-${String(idCounter++).padStart(3, '0')}`,
+        type: 'contradiction',
+        description: 'Document contains contradictory anonymous access instructions ("anonymous access is enabled" vs "anonymous access is disabled").',
+        snippet: 'Global context check',
+        severity: 'high',
+      });
     }
 
     return reports;
@@ -351,6 +398,18 @@ export class RuleBasedAnalysisStrategy implements IAnalysisStrategy {
         description:
           'Strict format guidelines (e.g. date shapes, telephone numbers, emails) are missing.',
         whyCriticalForQA: 'Valid vs invalid format test strings cannot be validated dynamically.',
+      });
+    }
+
+    // 5. Database Models Check
+    const dbKeywords = ['save', 'store', 'update', 'delete', 'create', 'database', 'db', 'table', 'persistence', 'persist'];
+    const hasDbKeywords = dbKeywords.some((word) => lowerText.includes(word));
+    const hasDbSchema = lowerText.includes('schema') || lowerText.includes('properties') || lowerText.includes('columns') || lowerText.includes('fields');
+    if (hasDbKeywords && !hasDbSchema) {
+      reports.push({
+        category: 'database-models' as any,
+        description: 'Requirement outlines persistence actions (saving/updating data) but does not define the schema or properties of the database models.',
+        whyCriticalForQA: 'Verification of data models and schema changes cannot be determined without a defined persistent data structure.',
       });
     }
 

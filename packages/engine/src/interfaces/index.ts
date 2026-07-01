@@ -195,6 +195,12 @@ export interface IKnowledgeEngine {
 
   findSimilarRequirements(requirement: Requirement): Promise<KnowledgeResult>;
 
+  learnFromCorrection(
+    requirementId: string,
+    questionText: string,
+    correctedAnswer: string,
+  ): Promise<KnowledgeEntry>;
+
   getStore(): KnowledgeEntry[];
 }
 
@@ -293,6 +299,27 @@ export interface IADOPersistenceAdapter {
     org: string,
     project: string,
     pat: string,
+  ): Promise<void>;
+}
+
+/**
+ * Jira Persistence Adapter
+ * Provides integration contracts to fetch issues from Jira and publish test attachments.
+ */
+export interface IJiraPersistenceAdapter {
+  importIssue(
+    issueKey: string,
+    domain: string,
+    email: string,
+    token: string,
+  ): Promise<Requirement>;
+
+  exportTestCases(
+    testCases: TestCase[],
+    issueKey: string,
+    domain: string,
+    email: string,
+    token: string,
   ): Promise<void>;
 }
 
