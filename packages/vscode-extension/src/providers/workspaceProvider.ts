@@ -1195,11 +1195,13 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
         try {
           const models = await (vscode as any).lm.selectChatModels({});
           if (models && models.length > 0) {
-            const selectedModel = models.find((m: any) =>
-              m.name?.toLowerCase().includes('gpt-4') ||
-              m.name?.toLowerCase().includes('claude-3-5') ||
-              m.name?.toLowerCase().includes('sonnet')
-            ) || models[0];
+            const selectedModel =
+              models.find(
+                (m: any) =>
+                  m.name?.toLowerCase().includes('gpt-4') ||
+                  m.name?.toLowerCase().includes('claude-3-5') ||
+                  m.name?.toLowerCase().includes('sonnet'),
+              ) || models[0];
             return new VSCodeLMProvider(selectedModel);
           }
         } catch {
@@ -1231,18 +1233,20 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
         apiEndpoint: endpoint || undefined,
         temperature: 0.7,
       });
-    } catch (err: any) {
+    } catch {
       if ((vscode as any).lm) {
         try {
           const models = await (vscode as any).lm.selectChatModels({});
           if (models && models.length > 0) {
-            const selectedModel = models.find((m: any) =>
-              m.name?.toLowerCase().includes('gpt-4') ||
-              m.name?.toLowerCase().includes('claude-3-5') ||
-              m.name?.toLowerCase().includes('sonnet')
-            ) || models[0];
+            const selectedModel =
+              models.find(
+                (m: any) =>
+                  m.name?.toLowerCase().includes('gpt-4') ||
+                  m.name?.toLowerCase().includes('claude-3-5') ||
+                  m.name?.toLowerCase().includes('sonnet'),
+              ) || models[0];
             vscode.window.showInformationMessage(
-              `QAMate: Configuration failed. Using fallback VS Code LM: ${selectedModel.name || selectedModel.id}`
+              `QAMate: Configuration failed. Using fallback VS Code LM: ${selectedModel.name || selectedModel.id}`,
             );
             return new VSCodeLMProvider(selectedModel);
           }
@@ -1319,11 +1323,13 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
         const models = await (vscode as any).lm.selectChatModels({});
         if (models && models.length > 0) {
           vsCodeLMAvailable = true;
-          const selectedModel = models.find((m: any) =>
-            m.name?.toLowerCase().includes('gpt-4') ||
-            m.name?.toLowerCase().includes('claude-3-5') ||
-            m.name?.toLowerCase().includes('sonnet')
-          ) || models[0];
+          const selectedModel =
+            models.find(
+              (m: any) =>
+                m.name?.toLowerCase().includes('gpt-4') ||
+                m.name?.toLowerCase().includes('claude-3-5') ||
+                m.name?.toLowerCase().includes('sonnet'),
+            ) || models[0];
           lmModelName = selectedModel.name || selectedModel.id || 'Default';
         }
       } catch {

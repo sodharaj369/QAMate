@@ -38,7 +38,8 @@ export function renderSettingsPage(config: SettingsPageConfig): string {
     .join('');
 
   // Determine states of each provider
-  const isVSCodeLMActive = config.selectedAIProvider === 'mock' && config.aiStatus.includes('VS Code LM');
+  const isVSCodeLMActive =
+    config.selectedAIProvider === 'mock' && config.aiStatus.includes('VS Code LM');
   const isOpenAIActive = config.selectedAIProvider === 'openai' && config.hasAIKey;
   const isClaudeActive = config.selectedAIProvider === 'claude' && config.hasAIKey;
   const isGeminiActive = config.selectedAIProvider === 'gemini' && config.hasAIKey;

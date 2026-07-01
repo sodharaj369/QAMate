@@ -103,8 +103,11 @@ export function renderWelcomePage(config: WelcomePageConfig): string {
   `;
 
   // Workspace Status Box
-  const hasAIAvailable = config.selectedAIProvider !== 'mock' || config.aiStatus.includes('VS Code LM');
-  const aiStatusColor = hasAIAvailable ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)';
+  const hasAIAvailable =
+    config.selectedAIProvider !== 'mock' || config.aiStatus.includes('VS Code LM');
+  const aiStatusColor = hasAIAvailable
+    ? 'var(--vscode-testing-iconPassedColor, #89D185)'
+    : 'var(--vscode-descriptionForeground)';
 
   const systemStatusHtml = `
     <div style="font-size: 11px; line-height: 1.4;">
