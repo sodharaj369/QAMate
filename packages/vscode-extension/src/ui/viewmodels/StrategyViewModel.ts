@@ -13,7 +13,8 @@ export class StrategyViewModel {
   constructor(conversation: Conversation) {
     const strategy = (conversation as any).generatedStrategy;
     this.overallRisk = strategy?.riskAssessment?.overallLevel || strategy?.riskLevel || 'MEDIUM';
-    this.objectives = strategy?.objectives?.map((o: any) => o.description || o) || strategy?.objectives || [];
+    this.objectives =
+      strategy?.objectives?.map((o: any) => o.description || o) || strategy?.objectives || [];
     this.businessImpact = strategy?.businessImpact || 'MEDIUM';
     this.riskLevel = strategy?.riskLevel || 'MEDIUM';
     this.primaryFocus = strategy?.primaryFocus || [];

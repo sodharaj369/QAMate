@@ -307,12 +307,7 @@ export interface IADOPersistenceAdapter {
  * Provides integration contracts to fetch issues from Jira and publish test attachments.
  */
 export interface IJiraPersistenceAdapter {
-  importIssue(
-    issueKey: string,
-    domain: string,
-    email: string,
-    token: string,
-  ): Promise<Requirement>;
+  importIssue(issueKey: string, domain: string, email: string, token: string): Promise<Requirement>;
 
   exportTestCases(
     testCases: TestCase[],

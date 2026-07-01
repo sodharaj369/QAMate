@@ -4,7 +4,7 @@ export function renderRecommendationCard(
   title: string,
   reason: string,
   expectedImpact: string,
-  onclickAction: string
+  onclickAction: string,
 ): string {
   return `
     <div class="action-box">

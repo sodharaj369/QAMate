@@ -14,8 +14,8 @@ export class DefaultJiraAdapter implements IJiraPersistenceAdapter {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
-        'Authorization': authHeader,
+        Accept: 'application/json',
+        Authorization: authHeader,
       },
     });
 
@@ -26,9 +26,10 @@ export class DefaultJiraAdapter implements IJiraPersistenceAdapter {
 
     const data = (await response.json()) as any;
     const title = data.fields?.summary || 'Untitled Jira Issue';
-    const rawContent = typeof data.fields?.description === 'string'
-      ? data.fields.description
-      : JSON.stringify(data.fields?.description || 'No description provided.');
+    const rawContent =
+      typeof data.fields?.description === 'string'
+        ? data.fields.description
+        : JSON.stringify(data.fields?.description || 'No description provided.');
 
     return {
       id: `jira-${issueKey}`,
@@ -73,20 +74,20 @@ export class DefaultJiraAdapter implements IJiraPersistenceAdapter {
             content: [
               {
                 type: 'text',
-                text: commentBody
-              }
-            ]
-          }
-        ]
-      }
+                text: commentBody,
+              },
+            ],
+          },
+        ],
+      },
     };
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': authHeader,
+        Accept: 'application/json',
+        Authorization: authHeader,
       },
       body: JSON.stringify(payload),
     });

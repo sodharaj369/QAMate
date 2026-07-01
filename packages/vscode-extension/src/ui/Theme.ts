@@ -6,11 +6,11 @@ export const Theme = {
     lg: '16px',
     xl: '24px',
     xxl: '32px',
-    xxxl: '48px'
+    xxxl: '48px',
   },
   animation: {
     fast: '120ms',
     normal: '180ms',
-    slow: '250ms'
-  }
+    slow: '250ms',
+  },
 };

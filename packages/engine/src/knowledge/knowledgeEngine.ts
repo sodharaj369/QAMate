@@ -173,7 +173,7 @@ export class DefaultKnowledgeEngine implements IKnowledgeEngine {
       this.extractKeywords(questionText + ' ' + correctedAnswer),
       requirementId,
       undefined,
-      0.95
+      0.95,
     );
     this.store.push(entry);
     return entry;

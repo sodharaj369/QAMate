@@ -5,14 +5,16 @@ import { renderStatusChip } from '../components/StatusChip.js';
 export function renderReviewPage(
   viewModel: ReviewViewModel,
   devModeEnabled: boolean,
-  rawData: any
+  rawData: any,
 ): string {
-  const devPanel = devModeEnabled ? `
+  const devPanel = devModeEnabled
+    ? `
     <div class="dev-mode-panel">
       <div class="dev-mode-header">Developer Diagnostic logs</div>
       <pre><code>${JSON.stringify(rawData, null, 2)}</code></pre>
     </div>
-  ` : '';
+  `
+    : '';
 
   const statusClass = viewModel.status.toLowerCase() === 'approved' ? 'ok' : 'warn';
   const suggestionsHtml = viewModel.suggestions.map((s: string) => `<li>${s}</li>`).join('');

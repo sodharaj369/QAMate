@@ -5,14 +5,16 @@ import { Theme } from '../Theme.js';
 export function renderRequirementPage(
   viewModel: RequirementViewModel,
   devModeEnabled: boolean,
-  rawData: any
+  rawData: any,
 ): string {
-  const devPanel = devModeEnabled ? `
+  const devPanel = devModeEnabled
+    ? `
     <div class="dev-mode-panel" style="margin-top: ${Theme.spacing.md};">
       <div class="dev-mode-header">Developer Diagnostic logs</div>
       <pre><code>${JSON.stringify(rawData, null, 2)}</code></pre>
     </div>
-  ` : '';
+  `
+    : '';
 
   return `
     <div class="page-container">

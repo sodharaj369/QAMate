@@ -21,7 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const provider = new QAMateSidebarProvider(context.extensionUri, context, engine, storage);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(QAMateSidebarProvider.viewType, provider)
+    vscode.window.registerWebviewViewProvider(QAMateSidebarProvider.viewType, provider),
   );
 
   // Bind Command Handlers
@@ -29,7 +29,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerOpenWorkspaceCommand(),
     registerContinueSessionCommand(provider),
     registerStartSessionCommand(provider),
-    registerAnalyzeCommand(provider)
+    registerAnalyzeCommand(provider),
   );
 
   // Monitor active editor changes to auto-detect requirement specifications

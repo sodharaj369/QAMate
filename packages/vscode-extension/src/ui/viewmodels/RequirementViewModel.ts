@@ -12,8 +12,8 @@ export class RequirementViewModel {
   constructor(conversation: Conversation) {
     const intel = conversation.currentIntelligence;
     this.title = (conversation as any).requirementTitle || conversation.id.replace('conv-', '');
-    this.actors = intel?.actors.map(a => a.name).join(', ') || 'None';
-    this.entities = intel?.entities.map(e => e.name).join(', ') || 'None';
+    this.actors = intel?.actors.map((a) => a.name).join(', ') || 'None';
+    this.entities = intel?.entities.map((e) => e.name).join(', ') || 'None';
     this.rulesCount = intel?.businessRules.length || 0;
     this.hasQuestions = conversation.questions.length > 0;
     this.detectedDomains = (conversation as any).detectedDomains?.join(', ') || 'General Scope';

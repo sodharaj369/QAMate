@@ -1,0 +1,55 @@
+"Artifact ID","Type","Content"
+"ART-3429-MAN","Manual Test Cases","### QA Test Suite - Manual Test Cases
+- **Persona**: MANUAL-QA
+- **Requirement**: USER-STORY-FORMAT
+- **Operational Domains**: 
+#### 🟢 Positive Test Cases (Functional Verification)
+- [ ] **TC-POS-1**: Verify rule [BR-001] - ""a broken icon will appear - After a chat with Yvonne, we've confirmed Clients ususally provide their own logos, removing a defualt logo will result in a broken icon being shown, however this will only be until the client updates the logo"" under condition: ""provide default image, as if there is no image present"".
+
+#### 🔴 Negative Test Cases (Failure Paths & Exceptions)
+- [ ] **TC-NEG-1**: Trigger validation errors by submitting empty or malformed inputs.
+- [ ] **TC-NEG-2**: Verify authentication denial / authorization lockout for unauthorized actions.
+
+#### 📐 Boundary & Edge Case Checklist
+- [ ] **TC-BND-1**: Assert character limit overflows (e.g., input values at limit, limit + 1).
+- [ ] **TC-EDGE-1**: Trigger race conditions or concurrent connection interrupts.
+
+#### ♿ Accessibility & UX Compliance Checks (WCAG)
+- [ ] **ACC-1**: Verify keyboard navigation (Tab indices) and focus indicator visibility.
+- [ ] **ACC-2**: Assert screen reader accessibility via ARIA labels and semantic markup validation."
+"ART-3429-REG","Regression Checklist","### QA Test Suite - Regression Checklist
+- **Persona**: MANUAL-QA
+- **Requirement**: USER-STORY-FORMAT
+- **Operational Domains**: 
+#### 🟢 Positive Test Cases (Functional Verification)
+- [ ] **TC-POS-1**: Verify rule [BR-001] - ""a broken icon will appear - After a chat with Yvonne, we've confirmed Clients ususally provide their own logos, removing a defualt logo will result in a broken icon being shown, however this will only be until the client updates the logo"" under condition: ""provide default image, as if there is no image present"".
+
+#### 🔴 Negative Test Cases (Failure Paths & Exceptions)
+- [ ] **TC-NEG-1**: Trigger validation errors by submitting empty or malformed inputs.
+- [ ] **TC-NEG-2**: Verify authentication denial / authorization lockout for unauthorized actions.
+
+#### 📐 Boundary & Edge Case Checklist
+- [ ] **TC-BND-1**: Assert character limit overflows (e.g., input values at limit, limit + 1).
+- [ ] **TC-EDGE-1**: Trigger race conditions or concurrent connection interrupts.
+
+#### ♿ Accessibility & UX Compliance Checks (WCAG)
+- [ ] **ACC-1**: Verify keyboard navigation (Tab indices) and focus indicator visibility.
+- [ ] **ACC-2**: Assert screen reader accessibility via ARIA labels and semantic markup validation."
+"ART-3429-EXP","Exploratory Charter","### QA Test Suite - Exploratory Charter
+- **Persona**: MANUAL-QA
+- **Requirement**: USER-STORY-FORMAT
+- **Operational Domains**: 
+#### 🟢 Positive Test Cases (Functional Verification)
+- [ ] **TC-POS-1**: Verify rule [BR-001] - ""a broken icon will appear - After a chat with Yvonne, we've confirmed Clients ususally provide their own logos, removing a defualt logo will result in a broken icon being shown, however this will only be until the client updates the logo"" under condition: ""provide default image, as if there is no image present"".
+
+#### 🔴 Negative Test Cases (Failure Paths & Exceptions)
+- [ ] **TC-NEG-1**: Trigger validation errors by submitting empty or malformed inputs.
+- [ ] **TC-NEG-2**: Verify authentication denial / authorization lockout for unauthorized actions.
+
+#### 📐 Boundary & Edge Case Checklist
+- [ ] **TC-BND-1**: Assert character limit overflows (e.g., input values at limit, limit + 1).
+- [ ] **TC-EDGE-1**: Trigger race conditions or concurrent connection interrupts.
+
+#### ♿ Accessibility & UX Compliance Checks (WCAG)
+- [ ] **ACC-1**: Verify keyboard navigation (Tab indices) and focus indicator visibility.
+- [ ] **ACC-2**: Assert screen reader accessibility via ARIA labels and semantic markup validation."

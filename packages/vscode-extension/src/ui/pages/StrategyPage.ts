@@ -5,35 +5,43 @@ import { Theme } from '../Theme.js';
 export function renderStrategyPage(
   viewModel: StrategyViewModel,
   devModeEnabled: boolean,
-  rawData: any
+  rawData: any,
 ): string {
-  const devPanel = devModeEnabled ? `
+  const devPanel = devModeEnabled
+    ? `
     <div class="dev-mode-panel" style="margin-top: ${Theme.spacing.md};">
       <div class="dev-mode-header">Developer Diagnostic logs</div>
       <pre><code>${JSON.stringify(rawData, null, 2)}</code></pre>
     </div>
-  ` : '';
+  `
+    : '';
 
-  const objectivesHtml = viewModel.objectives.length > 0 ? 
-    viewModel.objectives.map((o: string) => `<li style="margin-bottom: 4px;">${o}</li>`).join('') : 
-    `<li>${strings.strategy.noObjectives}</li>`;
+  const objectivesHtml =
+    viewModel.objectives.length > 0
+      ? viewModel.objectives
+          .map((o: string) => `<li style="margin-bottom: 4px;">${o}</li>`)
+          .join('')
+      : `<li>${strings.strategy.noObjectives}</li>`;
 
   // Draw 3x3 Risk Matrix Grid
   const riskVal = viewModel.riskLevel.toLowerCase();
   const impactVal = viewModel.businessImpact.toLowerCase();
 
   const isCellActive = (cellImpact: string, cellRisk: string): boolean => {
-    const matchImpact = (cellImpact === 'critical' || cellImpact === 'high') 
-      ? (impactVal === 'critical' || impactVal === 'high') 
-      : impactVal === cellImpact;
+    const matchImpact =
+      cellImpact === 'critical' || cellImpact === 'high'
+        ? impactVal === 'critical' || impactVal === 'high'
+        : impactVal === cellImpact;
     return matchImpact && riskVal === cellRisk;
   };
 
   const getCellBg = (cellImpact: string, cellRisk: string): string => {
     const active = isCellActive(cellImpact, cellRisk);
     if (active) {
-      if (cellImpact === 'high' || cellRisk === 'high') return 'var(--vscode-testing-iconFailedColor, #F48771)';
-      if (cellImpact === 'medium' || cellRisk === 'medium') return 'var(--vscode-editorWarning-foreground, #CCA700)';
+      if (cellImpact === 'high' || cellRisk === 'high')
+        return 'var(--vscode-testing-iconFailedColor, #F48771)';
+      if (cellImpact === 'medium' || cellRisk === 'medium')
+        return 'var(--vscode-editorWarning-foreground, #CCA700)';
       return 'var(--vscode-testing-iconPassedColor, #89D185)';
     }
     return 'var(--vscode-sideBarSectionHeader-background)';
@@ -78,12 +86,18 @@ export function renderStrategyPage(
   `;
 
   // Automation Suggestions
-  const autoHtml = viewModel.automationCandidates.length > 0 ? 
-    viewModel.automationCandidates.map((c: any) => `
+  const autoHtml =
+    viewModel.automationCandidates.length > 0
+      ? viewModel.automationCandidates
+          .map(
+            (c: any) => `
       <div style="border-bottom: 1px solid var(--vscode-panel-border); padding: 4px 0; font-size: 11px; margin-bottom: 4px;">
         <strong>🤖 ${c.scenario}:</strong> <span style="opacity: 0.95;">${c.reason}</span>
       </div>
-    `).join('') : '<p class="empty-text">No automation candidates suggested.</p>';
+    `,
+          )
+          .join('')
+      : '<p class="empty-text">No automation candidates suggested.</p>';
 
   // Suite configuration arrays for JS runtime
   const recommendedSuitesArr = viewModel.recommendedSuites;

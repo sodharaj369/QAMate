@@ -7,150 +7,72 @@
 > - Multiple customers request the specific feature capability
 > - Core architectural dependencies require a shift
 > 
-> **Do not modify because of new ideas.** Keep QAMate focused.
+> **Do not modify because of new ideas.** Keep QAMate focused on the six outcome stages:
+> **Understand** ➔ **Prepare** ➔ **Plan** ➔ **Generate** ➔ **Review** ➔ **Deliver**
 
 ---
 
 ## 📐 Roadmap Principle
-**Every sprint must end with a usable product slice.** 
-No sprint should leave you with a "half UI" or "placeholder engine." Each sprint deliverable must be functionally integrated, testable, and demonstrable from the VS Code extension interface.
+**Every phase must end with a usable product slice.** 
+Each phase's features must be functionally integrated, testable, and demonstrable from the VS Code extension interface.
 
 ---
 
 ## 🗺️ The Frozen Road
 
-### 1. Foundation 🧱
+### Phase 0 — Design Freeze (Current)
+* **Goal**: Establish the complete UX design, screen specs, state machine, and component libraries.
+* **Deliverables**:
+  - **Product Specification**: Defining the bounds of the outcomes-based design.
+  - **Screen Designs**: Wireframes and layouts for Home, Settings, Wizards, Strategy, Results Tabs, and Developer Mode.
+  - **User Flows**: Paths for the six outcomes (with and without QA Readiness).
+  - **Component Library**: Native VS Code token overrides and styles.
+  - **State Machine**: Aggregates, states, actions, and heuristic-first offline paths.
 
-#### Sprint PF-1: First Launch Experience (Highest Priority)
-- **Goal**: Make the first 30 seconds feel premium, obvious, and valuable.
-- **Build**: 
-  - Welcome dashboard: Introduction, recent sessions list, recent projects, and empty state instructions.
-  - Connections widget: Displays connection statuses for local VS Code AI, Azure DevOps, Jira, and Offline fallback modes.
-  - Preferences: QA Perspective/Persona selection (`manual-qa`, `automation-qa`, `backend-developer`, `tech-lead`) with persistent caching.
-  - Session manager: Actions to create, resume, or delete a workspace analysis session.
-  - Cleanups: Remove all fake simulated timeline stages, hardcoded mockup listings, and placeholders.
-- **Shippable Deliverable**: A fully functioning IDE sidebar webview that reads the local workspace, detects files, manages sessions, and lets users pick a target persona.
+### Phase 1 — Foundation (Immediate Backlog)
+* **Goal**: Enable requirement intake and session setup with configuration out of the way.
+* **Deliverables**:
+  - **Home Screen**: Redesigned dashboard focusing on Pasting/Opening specs first. No configuration fields or AI dropdowns on start.
+  - **Sessions**: Simple sidebar history (Resume, Rename, Delete, Duplicate) matching Cursor's recent panel.
+  - **Settings**: Centralized configuration home for Connections (AI, Azure, Jira), Preferences (QA Perspective/Persona, Theme, defaults), and Developer logs.
+  - **Requirement Intake**: Fast prioritization intake order (1. Paste, 2. Current File, 3. Upload, 4. Azure DevOps, 5. Jira).
 
-#### Sprint PF-2: AI & Connection Manager
-- **Goal**: Connect credentials once, securely, and never ask again.
-- **Build**:
-  - Secure credential adapter leveraging VS Code Secret Storage (never plain config files).
-  - Autodetect active VS Code AI provider models.
-  - Azure DevOps and Jira secure connector setups: Personal Access Tokens (PATs), Org name, project name, connection state checkers, disconnect options.
-- **Shippable Deliverable**: Interactive sidebar status widget displaying secure real-time connections, fallback configurations, and connection lifecycles.
+### Phase 2 — Intelligence
+* **Goal**: Build local analysis summaries, domain detection, readiness questioning, and strategic outlines.
+* **Deliverables**:
+  - **Understand (Analysis & Domain Detection)**: Local heuristic analysis parsing actors, business rules, acceptance criteria, health audits, and categorizing domains (e.g. Payments, CRM) with real confidence indicators.
+  - **Prepare (QA Readiness)**: Conditional questionnaire appearing only if gaps exist, explaining *why* queries matter.
+  - **Plan (Test Strategy)**: Strategy summary compiling editable scope details, risks, priorities, approaches, and automation suggestions.
 
-#### Sprint PF-3: Requirement Intake
-- **Goal**: Rapid intake workflow to initialize requirement validation in under 10 seconds.
-- **Build**:
-  - Drag-and-drop or paste requirement area.
-  - File watcher for the active text editor document (with `.md`, `.txt`, `.docx`, `.pdf`, `.json` support).
-  - Auto-detection algorithm classifying raw inputs: Requirement Text, User Story format, ADO issue URL, Jira issue Key, or configuration file.
-- **Shippable Deliverable**: The paste-and-watch intake workspace that automatically routes raw inputs into the analysis compiler.
+### Phase 3 — QA Deliverables
+* **Goal**: Produce manual/automated test suites, review coverage, and export artifacts.
+* **Deliverables**:
+  - **Generate (Generate Test Suite)**: Generate test case files with defaults (Manual Tests: Positive, Negative, Boundary) and custom selections (API, SQL, Security, Performance, Accessibility, Automation).
+  - **Review (Results Workspace)**: Consolidated tabs (Strategy, Test Cases, Coverage, Review) with searchable grids, inline markdown editing, and coverage logs.
+  - **Deliver (Export Adapter)**: Synchronized exports to Excel, Markdown, PDF, and direct work-item syncing to Azure DevOps and Jira.
 
----
+### Phase 4 — Experience
+* **Goal**: Polish the visual workspace and add responsive IDE micro-interactions.
+* **Deliverables**:
+  - **Polish**: Fluid CSS skeleton loaders, transitions, and native styling.
+  - **Animations & Accessibility**: Keybindings and screen reader accessibility checks.
+  - **Marketplace**: Complete visual showcase assets showcasing Home, Analysis, Strategy, and Results.
 
-### 2. Intelligence 🧠
+### Phase 5 — Integrations
+* **Goal**: Integrate advanced AI platforms and enterprise platforms natively.
+* **Deliverables**:
+  - **AI Discovery**: Automatic detection of local VS Code AI (e.g., GitHub Copilot, VS Code Chat) with direct configuration integration.
+  - **Azure DevOps & Jira Wizards**: Step-by-step import setup flows for connection credentials, stored securely.
 
-#### Sprint RI-1: Requirement Analysis
-- **Goal**: Compile structural insights without calling any external LLMs.
-- **Build**:
-  - Deterministic parser: Extract business rules, actors, database entities, and explicit acceptance criteria using static AST/heuristic rules.
-  - Health audit engine: Report duplicate requirements, missing blocks, and basic structural inconsistencies.
-- **Shippable Deliverable**: A local analysis dashboard detailing requirement statistics, identified actors, and structural health scorecards.
+### Phase 6 — Enterprise
+* **Goal**: Team-wide customization and reporting.
+* **Deliverables**:
+  - **Teams**: Workspace sharing structures.
+  - **Templates & Reports**: Organizational playbooks and QA readiness compliance reporting.
 
-#### Sprint RI-2: Domain Detection
-- **Goal**: Categorize requirement scopes to target correct QA testing perspectives.
-- **Build**:
-  - Domain categorization engine matching common software scopes: Authentication, Payments, Healthcare, Education, Hospitality, CRM, API, Infrastructure.
-  - Confidence rating mapping based on keyword rules (no fake simulated confidence numbers).
-- **Shippable Deliverable**: Sidebar indicator detailing the confidence rating and detected operational domains.
+### Phase 7 — Learning
+* **Goal**: Build long-term memory patterns and corrections lookup.
+* **Deliverables**:
+  - **Playbooks & Reusable Patterns**: Shared team guidelines.
+  - **Organizational Knowledge**: Local database learning from manual user strategic adjustments and historical corrections.
 
-#### Sprint RI-3: Reasoning Engine
-- **Goal**: Highlight critical gaps, missing information, and structural assumptions.
-- **Build**:
-  - Heuristic-based logic engine checking assumptions, missing database models, and direct requirement contradictions.
-- **Shippable Deliverable**: Interactive resolution loop prompting: *"Need clarification? (Yes/No)"* with immediate structural reasoning explanations.
-
-#### Sprint RI-4: QA Readiness
-- **Goal**: Drive investigative readiness questions without annoying the user.
-- **Build**:
-  - Adaptive stepper question generator that skips unnecessary queries if context parameters are already known.
-  - Explicit rationale cards detailing why each question is being asked and how it alters the final testing strategy.
-- **Shippable Deliverable**: Fully responsive question stepper showing why questions are generated and allowing skips/overrides.
-
----
-
-### 3. QA Deliverables 📦
-
-#### Sprint TS-1: Test Strategy
-- **Goal**: Formulate the primary strategic outline before drafting test code.
-- **Build**:
-  - Visual strategy generator compiling: Risk Matrices, Scope limits, Priority indicators, and Automation suggestions.
-  - Editor letting users modify priorities and exclude items before running artifact factories.
-- **Shippable Deliverable**: Fully interactive Strategy Dashboard presenting risk matrices with user override support.
-
-#### Sprint TS-2: Test Cases (Manual & Skeletons)
-- **Goal**: Produce manual and automated test templates under the target persona.
-- **Build**:
-  - Factory pattern creating Positive, Negative, Boundary, Edge Case, and API checklists.
-  - Suggests Security, Performance, and Accessibility rules only when the detected domain warrants them.
-- **Shippable Deliverable**: Structured cases layout matching exact validation outputs.
-
-#### Sprint TS-3: Results Workspace
-- **Goal**: Read, filter, and modify deliverables inside the workspace.
-- **Build**:
-  - Consolidated tab views (Strategy, Cases, Coverage review logs).
-  - Search, sort, filter, and inline markdown editor controls.
-- **Shippable Deliverable**: Tab-based deliverable manager displaying tabular case metrics and editable blocks.
-
-#### Sprint TS-4: Export Adapter
-- **Goal**: Export approved deliverables in multiple standard structures.
-- **Build**:
-  - Exporters for: Excel (XLSX), CSV, Markdown (MD), and direct synchronization to Azure DevOps/Jira ticket attachments.
-- **Shippable Deliverable**: Integrations card with download selectors and direct ADO/Jira sync actions.
-
----
-
-### 4. Experience 🎨
-
-#### Sprint UX-1: Living Workspace
-- **Goal**: Clean layout keeping focus on user workflow without visual noise.
-- **Build**:
-  - Single-page stepper workspace layout eliminating nested side panels.
-  - Next Best Action footer tracker showing progress.
-- **Shippable Deliverable**: Unified workspace panel showing active session, next steps, and timeline changes.
-
-#### Sprint UX-2: Native VS Code
-- **Goal**: Fluid IDE integration satisfying standard typography, colors, and accessibility.
-- **Build**:
-  - Complete integration matching user font sizes, active VS Code theme overrides, standard Codicons, and native keyboard hotkey bindings.
-- **Shippable Deliverable**: Extension bundle that looks and operates natively like a built-in VS Code interface.
-
-#### Sprint UX-3: Micro-interactions & Polish
-- **Goal**: Responsive visual feedback for operations.
-- **Build**:
-  - Flat CSS transitions, skeleton loaders, and drag-and-drop animations.
-- **Shippable Deliverable**: Smooth animations and loading skeletons that respond to background execution states.
-
----
-
-### 5. Enterprise & Advanced 🚀
-
-#### Sprint ENT-1: Azure & Jira Synchronization
-- **Goal**: Sync local deliverables to live enterprise work items automatically.
-- **Build**:
-  - Automated field mapper linking test cases back to Jira Issues and Azure DevOps Test Plans.
-
-#### Sprint ENT-2: Team Settings & Org Playbooks
-- **Goal**: Inject customized standards.
-- **Build**:
-  - Configurable playbooks enabling teams to set custom criteria, corporate styles, and test design templates.
-
----
-
-### 6. Future & Learning 🧠
-
-#### Sprint LRN-1: Pattern Memory Reuse
-- **Goal**: Learn from historical session edits.
-- **Build**:
-  - Local database storing manual corrections to suggested assumptions and reusing similar patterns in future requirements.

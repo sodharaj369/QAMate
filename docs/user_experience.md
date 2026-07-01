@@ -1,35 +1,49 @@
 # QAMate User Experience Framework
 
-This document outlines the core workflows, sidebar configurations, next best action engines, and editor widgets.
+This document outlines the core workflows, outcome transitions, next best action logic, and client workspace views.
 
 ---
 
-## 1. Guided Workspace Stepper
+## 1. Outcome-Based Stepper
 
-Users progress through a linear sequence:
-1. **Requirement**: Pasteur file inputs or select from Azure DevOps context explorer. Exposes heuristic checklists.
-2. **Clarifications**: Prompts the user with prioritized gaps questions.
-3. **Strategy**: Visualizes recommended suites, risk levels, and automated templates recommendations.
-4. **Review**: Quality gate review status scores.
-5. **Coverage**: Rules traceability logs.
+The sidebar workspace tracks user progress against six distinct outcomes rather than a chronological step wizard:
+
+1. **Understand**:
+   - Intake: Paste raw requirements, upload files, or trigger imports.
+   - Output: Requirement Health score, business rules index, actors list, and risks list.
+2. **Prepare** (QA Readiness):
+   - Output: Verification questions with explicit coverage rationales. Appears conditionally ONLY if gaps are found.
+3. **Plan** (Test Strategy):
+   - Output: Risks matrix, target priorities, test approach overrides, and automation recommendations.
+4. **Generate** (Generate Test Suite):
+   - Output: Manual or automated test case drafts.
+5. **Review**:
+   - Output: Strategy details, test cases grid, coverage mapping, and audit check results. Support inline editing and search.
+6. **Deliver** (Export & Sync):
+   - Output: Excel/Markdown/PDF exports, and Azure DevOps or Jira sync confirmation.
 
 ---
 
-## 2. Next Best Action Engine Rules
+## 2. Next Best Action Logic
 
-Contextual recommendations steer user decisions:
-- **State: Imported** ➔ Recommend: `Answer Clarifications`
-- **State: Clarified** ➔ Recommend: `Generate Test Strategy`
-- **State: Strategized** ➔ Recommend: `Generate Test Skeleton Code`
-- **State: Generated** ➔ Recommend: `Review Generated Artifacts`
+Contextual actions guide the user based on outcome readiness:
+- **Requirement Intake Active** ➔ Recommend: `Analyze Requirement` (**Understand**)
+- **Ambiguities / Gaps Found** ➔ Recommend: `Complete QA Readiness Check` (**Prepare**)
+- **Gaps Clarified / Resolved** ➔ Recommend: `Review & Edit Test Strategy` (**Plan**)
+- **Strategy Approved** ➔ Recommend: `Generate Test Suite` (**Generate**)
+- **Suite Generated** ➔ Recommend: `Review Test Cases & Coverage` (**Review**)
+- **Review Approved** ➔ Recommend: `Export Deliverables` (**Deliver**)
 
 ---
 
 ## 3. Command Palette Contributions
 
-Exposes commands globally inside VS Code editor command palette:
-- `QAMate: Analyze Active Requirement File`
-- `QAMate: Generate Test Strategy`
-- `QAMate: Generate Manual Test Cases`
-- `QAMate: Review Generated Artifacts`
-- `QAMate: Export Project Strategy Results`
+Commands are registered globally inside the VS Code editor command palette:
+- `QAMate: Open Workspace Home` (🏠 Home)
+- `QAMate: View Session History` (📂 Sessions)
+- `QAMate: Open Extension Settings` (⚙ Settings)
+- `QAMate: Run Diagnostics Analysis` (Understand)
+- `QAMate: Approve Strategy and Plan` (Plan)
+- `QAMate: Generate Test Suite` (Generate)
+- `QAMate: Export Deliverables` (Deliver)
+

@@ -277,7 +277,14 @@ export class RuleBasedAnalysisStrategy implements IAnalysisStrategy {
       }
 
       // 4. Check unverified assumptions
-      const assumptionKeywords = ['assume', 'assuming', 'expected', 'presumed', 'probably', 'implicitly'];
+      const assumptionKeywords = [
+        'assume',
+        'assuming',
+        'expected',
+        'presumed',
+        'probably',
+        'implicitly',
+      ];
       for (const word of assumptionKeywords) {
         const regex = new RegExp(`\\b${word}\\b`, 'i');
         if (regex.test(line)) {
@@ -297,16 +304,22 @@ export class RuleBasedAnalysisStrategy implements IAnalysisStrategy {
         reports.push({
           id: `AMB-${String(idCounter++).padStart(3, '0')}`,
           type: 'contradiction',
-          description: 'Line contains potentially contradictory statements: both "must" and "must not" rules are defined in the same rule.',
+          description:
+            'Line contains potentially contradictory statements: both "must" and "must not" rules are defined in the same rule.',
           snippet: line,
           severity: 'high',
         });
       }
-      if (lowerLine.includes('enable') && lowerLine.includes('disable') && lowerLine.includes('anonymous')) {
+      if (
+        lowerLine.includes('enable') &&
+        lowerLine.includes('disable') &&
+        lowerLine.includes('anonymous')
+      ) {
         reports.push({
           id: `AMB-${String(idCounter++).padStart(3, '0')}`,
           type: 'contradiction',
-          description: 'Line contains contradictory statements regarding anonymous access (both enable and disable keywords found).',
+          description:
+            'Line contains contradictory statements regarding anonymous access (both enable and disable keywords found).',
           snippet: line,
           severity: 'high',
         });
@@ -314,11 +327,15 @@ export class RuleBasedAnalysisStrategy implements IAnalysisStrategy {
     }
 
     const fullTextLower = lines.join('\n').toLowerCase();
-    if (fullTextLower.includes('anonymous access is enabled') && fullTextLower.includes('anonymous access is disabled')) {
+    if (
+      fullTextLower.includes('anonymous access is enabled') &&
+      fullTextLower.includes('anonymous access is disabled')
+    ) {
       reports.push({
         id: `AMB-${String(idCounter++).padStart(3, '0')}`,
         type: 'contradiction',
-        description: 'Document contains contradictory anonymous access instructions ("anonymous access is enabled" vs "anonymous access is disabled").',
+        description:
+          'Document contains contradictory anonymous access instructions ("anonymous access is enabled" vs "anonymous access is disabled").',
         snippet: 'Global context check',
         severity: 'high',
       });
@@ -402,14 +419,31 @@ export class RuleBasedAnalysisStrategy implements IAnalysisStrategy {
     }
 
     // 5. Database Models Check
-    const dbKeywords = ['save', 'store', 'update', 'delete', 'create', 'database', 'db', 'table', 'persistence', 'persist'];
+    const dbKeywords = [
+      'save',
+      'store',
+      'update',
+      'delete',
+      'create',
+      'database',
+      'db',
+      'table',
+      'persistence',
+      'persist',
+    ];
     const hasDbKeywords = dbKeywords.some((word) => lowerText.includes(word));
-    const hasDbSchema = lowerText.includes('schema') || lowerText.includes('properties') || lowerText.includes('columns') || lowerText.includes('fields');
+    const hasDbSchema =
+      lowerText.includes('schema') ||
+      lowerText.includes('properties') ||
+      lowerText.includes('columns') ||
+      lowerText.includes('fields');
     if (hasDbKeywords && !hasDbSchema) {
       reports.push({
         category: 'database-models' as any,
-        description: 'Requirement outlines persistence actions (saving/updating data) but does not define the schema or properties of the database models.',
-        whyCriticalForQA: 'Verification of data models and schema changes cannot be determined without a defined persistent data structure.',
+        description:
+          'Requirement outlines persistence actions (saving/updating data) but does not define the schema or properties of the database models.',
+        whyCriticalForQA:
+          'Verification of data models and schema changes cannot be determined without a defined persistent data structure.',
       });
     }
 

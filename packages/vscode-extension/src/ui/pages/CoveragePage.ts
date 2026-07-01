@@ -4,14 +4,16 @@ import { CoverageViewModel } from '../viewmodels/CoverageViewModel.js';
 export function renderCoveragePage(
   viewModel: CoverageViewModel,
   devModeEnabled: boolean,
-  rawData: any
+  rawData: any,
 ): string {
-  const devPanel = devModeEnabled ? `
+  const devPanel = devModeEnabled
+    ? `
     <div class="dev-mode-panel">
       <div class="dev-mode-header">Developer Diagnostic logs</div>
       <pre><code>${JSON.stringify(rawData, null, 2)}</code></pre>
     </div>
-  ` : '';
+  `
+    : '';
 
   const traceHtml = viewModel.logs.map((log: string) => `<p>${log}</p>`).join('');
 

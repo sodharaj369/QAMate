@@ -11,11 +11,11 @@ export class DefaultContextCompiler implements IContextCompiler {
     generationPreferences: GenerationPreferences,
   ): Promise<GeneratorContext> {
     const historicalCorrections: string[] = [];
-    
+
     try {
       const { DefaultKnowledgeEngine } = await import('../knowledge/knowledgeEngine.js');
       const knowledgeEngine = new DefaultKnowledgeEngine();
-      
+
       const result = await knowledgeEngine.findSimilarRequirements(requirement);
       if (result && result.matches) {
         result.matches.forEach((m) => {

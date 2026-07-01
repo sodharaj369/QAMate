@@ -1,5 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ECEFF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="11" r="7" />
-  <polyline points="9 11 11 13 15 9" />
-  <line x1="17" y1="16" x2="21" y2="20" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <!-- Outer Q ring and tail -->
+  <circle cx="64" cy="64" r="44" stroke="#ECEFF1" stroke-width="8" />
+  <path d="M95 95 L116 116" stroke="#ECEFF1" stroke-width="8" stroke-linecap="round" />
+
+  <!-- Vertical connecting reasoning chain line -->
+  <line x1="64" y1="26" x2="64" y2="102" stroke="#00B0FF" stroke-width="2" stroke-linecap="round" />
+
+  <!-- Stacked QA reasoning diamonds -->
+  <!-- Top: Ambiguity/Heuristics stage -->
+  <polygon points="64,24 78,38 64,52 50,38" stroke="#00E5FF" stroke-width="3" stroke-linejoin="round" fill="#0B132B" />
+  <circle cx="64" cy="38" r="3.5" fill="#00E5FF" />
+
+  <!-- Middle: Strategic coverage planning -->
+  <polygon points="64,50 78,64 64,78 50,64" stroke="#00B0FF" stroke-width="3" stroke-linejoin="round" fill="#0B132B" />
+  <circle cx="64" cy="64" r="3.5" fill="#00B0FF" />
+
+  <!-- Bottom: Delivering test cases code -->
+  <polygon points="64,76 78,90 64,104 50,90" stroke="#2979FF" stroke-width="3" stroke-linejoin="round" fill="#0B132B" />
+  <circle cx="64" cy="90" r="3.5" fill="#2979FF" />
 </svg>

@@ -27,7 +27,7 @@ Welcome to the QAMate active sprint board. This document tracks our immediate ta
 ### Sprint PF-2: AI & Connection Manager
 - [x] Secure storage connector using VS Code's `SecretStorage` for API keys and DevOps/Jira PATs.
 - [x] Asynchronous rendering engine integration to prevent visual blocking.
-- [x] Connection configuration forms under collapsible sidebar drawer.
+- [x] Connection configuration forms under collapsible settings.
 - [x] Dynamic `ILLMProvider` resolver and injector for engine generation steps.
 
 ### Sprint PF-3: Requirement Intake
@@ -37,40 +37,40 @@ Welcome to the QAMate active sprint board. This document tracks our immediate ta
 - [x] Zero-dependency binary text extractor parsing ASCII runs out of Word/PDF specifications.
 - [x] Classifier regex pattern verification tests.
 
-### Sprint RI-1: Requirement Analysis
+### Sprint RI-1: Requirement Analysis (Understand)
 - [x] Validation warning triggers VAL-005 (Duplicates), VAL-006 (Missing Acceptance Criteria), and VAL-007 (Inconsistent Gherkin steps).
 - [x] Sidebar scorecard dashboard presenting health rating scorecards.
 
-### Sprint RI-2: Domain Detection
+### Sprint RI-2: Domain Detection (Understand)
 - [x] Rule-based keyword-driven domain detector interface (`IDomainDetector`).
 - [x] Decoupled domain engine mapping confidence scores (Payments, Healthcare, Authentication, etc.).
 
-### Sprint RI-3: Reasoning Engine
+### Sprint RI-3: Reasoning Engine (Prepare)
 - [x] Added `database-models` missing info category option.
 - [x] Heuristic rules parsing unverified assumptions (`implied-behavior`), contradictions, and database schema gaps.
 
-### Sprint RI-4: QA Readiness
+### Sprint RI-4: QA Readiness (Prepare)
 - [x] Fully responsive, dynamic question stepper wizard.
 - [x] Skips, backtracking, explicit rationales, and skip risk explanations.
 
-### Sprint TS-1: Test Strategy
+### Sprint TS-1: Test Strategy (Plan)
 - [x] Risk Matrix Grid coordinates mapping visualizer widget.
 - [x] Interactive exclusions & priorities overrides editor dashboard.
 
-### Sprint TS-2: Test Cases (Manual & Skeletons)
+### Sprint TS-2: Test Cases (Generate)
 - [x] Cases factory generating positive, negative, boundary, edge case, and API checklists.
 - [x] Tailored security, performance, and accessibility advice based on domain context.
 
-### Sprint TS-3: Results Workspace
+### Sprint TS-3: Results Workspace (Review)
 - [x] Tab-based consolidated workspace tabs (Strategy, Cases, Review).
 - [x] Cases list search filtering and inline markdown text editor.
 
-### Sprint TS-4: Export Adapter
+### Sprint TS-4: Export Adapter (Deliver)
 - [x] Standard multi-format exporters (Markdown, CSV, Excel, HTML, JSON).
 - [x] Sync selectors linking test scripts back to Azure DevOps and Jira issue cards.
 
 ### Sprint UX-1: Living Workspace
-- [x] Single-page stepper workspace layout displaying the active step only.
+- [x] Single-page outcome stepper workspace layout displaying the active outcome page only.
 - [x] Next Best Action footer tracker recommendation guidance.
 
 ### Sprint UX-2: Native VS Code
@@ -102,7 +102,7 @@ Welcome to the QAMate active sprint board. This document tracks our immediate ta
    - Monorepo build passing.
 2. **Every recommendation must include reasoning.**
 3. **Every generated artifact must be traceable back to**:
-   `Requirement` ➔ `Intelligence` ➔ `Questions` ➔ `Context` ➔ `Strategy` ➔ `Artifact` ➔ `Review` ➔ `Coverage`
+   `Requirement` ➔ `Intelligence` (Understand) ➔ `Questions` (Prepare) ➔ `Context` ➔ `Strategy` (Plan) ➔ `Artifact` (Generate) ➔ `Review` (Review) ➔ `Coverage` (Review) ➔ `Export` (Deliver)
 4. **AI must never be the source of truth.** AI assists. QAMate reasons.
 5. **Build vertical slices.** Never build infrastructure that has no active consumer.
 6. **Every new module must have**: Interface, One implementation, Unit tests, CLI demonstration, and Documentation.

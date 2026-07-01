@@ -7,6 +7,8 @@ export class CoverageViewModel {
   constructor(conversation: Conversation) {
     const coverage = (conversation as any).coverageResult;
     this.ratio = coverage?.ratio || 100;
-    this.logs = coverage?.trace?.split('\n') || ['All business rules mapped to strategy objectives.'];
+    this.logs = coverage?.trace?.split('\n') || [
+      'All business rules mapped to strategy objectives.',
+    ];
   }
 }

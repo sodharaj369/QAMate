@@ -91,17 +91,34 @@ describe('VS Code Extension UX interactions tests', () => {
 });
 
 import { renderWelcomePage } from '../src/ui/pages/WelcomePage.js';
+import { renderSettingsPage } from '../src/ui/pages/SettingsPage.js';
 
 describe('Welcome Screen Page Rendering tests', () => {
-  it('should render connections status, persona dropdown options, and detected theme', () => {
+  it('should render requirement intake zone, active editor file card, and recent sessions list', () => {
     const html = renderWelcomePage({
       detectedFileName: 'active_requirement.md',
       recentSessionsHtml: '<div class="session-item">conv-1</div>',
       aiStatus: 'VS Code AI (Claude)',
       adoStatus: 'Connected',
       jiraStatus: 'Connected',
+      adoConnected: true,
+      jiraConnected: true,
+      selectedAIProvider: 'openai',
+      sessionsCount: 0,
+      hasGeneratedSuite: false,
+      lastSessionHtml: '',
+    });
+
+    expect(html).toContain('active_requirement.md');
+    expect(html).toContain('AI Available');
+    expect(html).toContain('conv-1');
+  });
+});
+
+describe('Settings Screen Page Rendering tests', () => {
+  it('should render selected persona, AI connection settings, and ADO/Jira board configurations', () => {
+    const html = renderSettingsPage({
       selectedPersona: 'automation-qa',
-      detectedTheme: 'Dark Mode',
       selectedAIProvider: 'openai',
       selectedAIModel: 'gpt-4o',
       selectedAIEndpoint: '',
@@ -113,14 +130,15 @@ describe('Welcome Screen Page Rendering tests', () => {
       jiraEmail: 'test@company.com',
       hasJiraToken: true,
       adoConnected: true,
-      jiraConnected: true
+      jiraConnected: true,
+      devModeEnabled: true,
+      aiStatus: 'openai (gpt-4o) • Connected',
     });
 
-    expect(html).toContain('active_requirement.md');
-    expect(html).toContain('VS Code AI (Claude)');
-    expect(html).toContain('Dark Mode');
-    expect(html).toContain('option value="automation-qa" selected');
-    expect(html).toContain('conv-1');
+    expect(html).toContain('automation-qa');
+    expect(html).toContain('my-proj');
+    expect(html).toContain('my-jira.atlassian.net');
+    expect(html).toContain('Developer Diagnostics');
   });
 });
 
@@ -254,18 +272,19 @@ describe('Test Results Workspace updates tests', () => {
 
 describe('Test Living Workspace step tracker tests', () => {
   it('should resolve correct NBA tracking guidelines based on the active step', () => {
-    const activeStep = 'Validation';
+    const activeStep = 'Understand';
     let nextBestActionText = '';
     
     switch (activeStep) {
-      case 'Validation':
-        nextBestActionText = 'Heuristics audit complete. Click "Continue" to extract requirement intelligence.';
+      case 'Understand':
+        nextBestActionText = 'Review health metrics, actors, and rules. Click "Continue" to prepare.';
         break;
-      case 'Clarifications':
-        nextBestActionText = 'Resolve questions or click "Skip" to formulate the test strategy.';
+      case 'Prepare':
+        nextBestActionText = 'Complete QA Readiness check or click "Skip" to view strategy.';
         break;
     }
 
-    expect(nextBestActionText).toContain('Heuristics audit complete');
+    expect(nextBestActionText).toContain('health metrics');
   });
 });
+

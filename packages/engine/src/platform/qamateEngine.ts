@@ -1,10 +1,33 @@
-import { Requirement, Conversation, Answer, TestStrategy, QAArtifact, UserPersona } from '../domain.js';
+import {
+  Requirement,
+  Conversation,
+  Answer,
+  TestStrategy,
+  QAArtifact,
+  UserPersona,
+} from '../domain.js';
 import { IConversationStorage, ILLMProvider } from '../interfaces/index.js';
-import { DefaultRequirementValidator, DefaultConfidenceScorer, RuleBasedAnalysisStrategy, DefaultRequirementAnalyzer, RuleBasedDomainDetector } from '../analyzer/index.js';
-import { DefaultQuestionCandidateGenerator, DefaultQuestionPrioritizer, DefaultQuestionDeduplicator, DefaultQuestionPlanner, DefaultClarificationEngine } from '../clarification/index.js';
+import {
+  DefaultRequirementValidator,
+  DefaultConfidenceScorer,
+  RuleBasedAnalysisStrategy,
+  DefaultRequirementAnalyzer,
+  RuleBasedDomainDetector,
+} from '../analyzer/index.js';
+import {
+  DefaultQuestionCandidateGenerator,
+  DefaultQuestionPrioritizer,
+  DefaultQuestionDeduplicator,
+  DefaultQuestionPlanner,
+  DefaultClarificationEngine,
+} from '../clarification/index.js';
 import { DefaultContextCompiler } from '../context/index.js';
 import { DefaultTestStrategyEngine } from '../strategy/index.js';
-import { DefaultArtifactPlanner, DefaultArtifactGenerator, MockLLMProvider } from '../artifacts/index.js';
+import {
+  DefaultArtifactPlanner,
+  DefaultArtifactGenerator,
+  MockLLMProvider,
+} from '../artifacts/index.js';
 import { DefaultReviewEngine } from '../review/index.js';
 import { DefaultCoverageEngine } from '../coverage/index.js';
 
@@ -39,7 +62,10 @@ export class QAMateEngine {
     const deduplicator = new DefaultQuestionDeduplicator();
     const planner = new DefaultQuestionPlanner();
     const clarifier = new DefaultClarificationEngine(generator, prioritizer, deduplicator, planner);
-    const { candidates, activeQuestions } = await clarifier.planClarifications(requirement, analysisResult.intelligence);
+    const { candidates, activeQuestions } = await clarifier.planClarifications(
+      requirement,
+      analysisResult.intelligence,
+    );
 
     // 4. Construct Conversation
     const conversation: Conversation = {
@@ -92,12 +118,9 @@ export class QAMateEngine {
       for (const ans of answers) {
         const question = conv.questions.find((q) => q.id === ans.questionId);
         if (question) {
-          const ansText = ans.textValue || (ans.selectedOptions ? ans.selectedOptions.join(', ') : '');
-          await knowledgeEngine.learnFromCorrection(
-            conv.requirementId,
-            question.text,
-            ansText,
-          );
+          const ansText =
+            ans.textValue || (ans.selectedOptions ? ans.selectedOptions.join(', ') : '');
+          await knowledgeEngine.learnFromCorrection(conv.requirementId, question.text, ansText);
         }
       }
 
@@ -150,7 +173,7 @@ export class QAMateEngine {
         maxCases: 5,
         focusAreas: ['security', 'boundaries', 'regression'],
         includeAutomationCandidate: true,
-      }
+      },
     );
 
     const strategyEngine = new DefaultTestStrategyEngine();
@@ -164,7 +187,10 @@ export class QAMateEngine {
     return strategy;
   }
 
-  public async generateArtifacts(sessionId: string, customProvider?: ILLMProvider): Promise<QAArtifact[]> {
+  public async generateArtifacts(
+    sessionId: string,
+    customProvider?: ILLMProvider,
+  ): Promise<QAArtifact[]> {
     const conv = await this.storage.loadConversation(sessionId);
     if (!conv) {
       throw new Error(`Session ${sessionId} not found.`);
@@ -197,7 +223,7 @@ export class QAMateEngine {
         maxCases: 5,
         focusAreas: ['security', 'boundaries', 'regression'],
         includeAutomationCandidate: true,
-      }
+      },
     );
 
     const strategy: TestStrategy = (conv as any).generatedStrategy || {
@@ -224,15 +250,11 @@ export class QAMateEngine {
 
     const planner = new DefaultArtifactPlanner();
     const persona: UserPersona = (conv as any).persona || 'automation-qa';
-    const plan = await planner.planArtifacts(
-      strategy,
-      persona,
-      {
-        language: 'typescript',
-        framework: 'playwright',
-        testingStyle: 'AAA',
-      }
-    );
+    const plan = await planner.planArtifacts(strategy, persona, {
+      language: 'typescript',
+      framework: 'playwright',
+      testingStyle: 'AAA',
+    });
 
     const generator = new DefaultArtifactGenerator();
     const provider = customProvider || new MockLLMProvider();
@@ -246,7 +268,9 @@ export class QAMateEngine {
     return artifacts;
   }
 
-  public async runReview(sessionId: string): Promise<{ status: string; score: number; suggestions: string[] }> {
+  public async runReview(
+    sessionId: string,
+  ): Promise<{ status: string; score: number; suggestions: string[] }> {
     const conv = await this.storage.loadConversation(sessionId);
     if (!conv) {
       throw new Error(`Session ${sessionId} not found.`);
@@ -279,7 +303,7 @@ export class QAMateEngine {
         maxCases: 5,
         focusAreas: ['security', 'boundaries', 'regression'],
         includeAutomationCandidate: true,
-      }
+      },
     );
 
     const strategy: TestStrategy = (conv as any).generatedStrategy || {
@@ -356,7 +380,11 @@ export class QAMateEngine {
 
     const artifacts: QAArtifact[] = (conv as any).generatedArtifacts || [];
     const coverageEngine = new DefaultCoverageEngine();
-    const coverageResult = await coverageEngine.calculateCoverage(strategy, artifacts, conv.currentIntelligence!);
+    const coverageResult = await coverageEngine.calculateCoverage(
+      strategy,
+      artifacts,
+      conv.currentIntelligence!,
+    );
 
     return {
       ratio: coverageResult.overallCoveragePercent,

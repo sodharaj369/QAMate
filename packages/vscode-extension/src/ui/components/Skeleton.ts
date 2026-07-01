@@ -1,6 +1,11 @@
 export function renderSkeleton(pageName: string, logs: string[]): string {
-  const stepsHtml = logs.map((log) => `<p class="skeleton-log" style="font-family: monospace; font-size: 10px; opacity: 0.85; margin: 4px 0;">⏱️ ${log}</p>`).join('');
-  
+  const stepsHtml = logs
+    .map(
+      (log) =>
+        `<p class="skeleton-log" style="font-family: monospace; font-size: 10px; opacity: 0.85; margin: 4px 0;">⏱️ ${log}</p>`,
+    )
+    .join('');
+
   return `
     <style>
       @keyframes shimmer {

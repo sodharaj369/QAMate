@@ -109,7 +109,11 @@ Please format your response by placing each artifact under its respective Markdo
     return sectionLines.join('\n').trim();
   }
 
-  private getMockContentForPersona(type: string, plan: ArtifactPlan, context?: GeneratorContext): string {
+  private getMockContentForPersona(
+    type: string,
+    plan: ArtifactPlan,
+    context?: GeneratorContext,
+  ): string {
     if (context) {
       return TestCasesFactory.generateCases(context, type, plan.persona);
     }
