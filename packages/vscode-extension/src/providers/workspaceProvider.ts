@@ -437,6 +437,7 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
       this.context.workspaceState.get<string>('qamate.ai.provider') || 'mock';
     const initialAIResult = {
       providerName: selectedAIProvider === 'mock' ? 'None' : selectedAIProvider,
+      modelName: '',
       requestSent: false,
       responseReceived: false,
       enhancementApplied: false,
@@ -483,7 +484,14 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
 
       if (activeProvider) {
         initialAIResult.requestSent = true;
-        initialAIResult.providerName = activeProvider.name;
+        const selectedAIModel = this.context.workspaceState.get<string>('qamate.ai.model') || '';
+        if (activeProvider.id.startsWith('vscode-lm')) {
+          initialAIResult.providerName = 'VS Code Language Model API';
+          initialAIResult.modelName = activeProvider.name;
+        } else {
+          initialAIResult.providerName = activeProvider.name;
+          initialAIResult.modelName = selectedAIModel || 'Default Model';
+        }
         this.context.workspaceState.update('qamateActiveAIResult', initialAIResult);
         try {
           conversation = await this.engine.createSession(requirement, activeProvider);
@@ -1634,7 +1642,7 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
                     ${
                       aiResult.requestSent
                         ? aiResult.enhancementApplied
-                          ? `<span style="color: var(--vscode-testing-iconPassedColor, #89D185); display: flex; align-items: center; gap: 3px;">✓ ${aiResult.providerName || 'AI'} Enhanced</span>`
+                          ? `<span style="color: var(--vscode-testing-iconPassedColor, #89D185); display: flex; align-items: center; gap: 3px;">✓ ${aiResult.providerName || 'AI'} (${aiResult.modelName || 'Enhanced'})</span>`
                           : `<span style="color: var(--vscode-testing-iconFailedColor, #F48771); display: flex; align-items: center; gap: 3px;" title="${aiResult.errorMessage || ''}">❌ ${aiResult.providerName || 'AI'} failed</span>`
                         : vsCodeLMAvailable
                           ? `<span style="color: var(--vscode-testing-iconPassedColor, #89D185); display: flex; align-items: center; gap: 3px;">✓ VS Code AI (${lmModelName})</span>`
