@@ -184,7 +184,7 @@ describe('Sprint 5C Platform Services tests', () => {
 
   // 8. Export Framework
   describe('ExportFramework', () => {
-    it('should export output strategies to Markdown, HTML and JSON structures', () => {
+    it('should export output strategies to Markdown, HTML and JSON structures', async () => {
       const exporter = new ExportFramework();
       const mockStrategy: TestStrategy = {
         id: 'strat-1',
@@ -230,6 +230,19 @@ describe('Sprint 5C Platform Services tests', () => {
       const xls = exporter.exportToExcel(mockStrategy, mockArtifacts);
       expect(xls).toContain('<th>Artifact ID</th>');
       expect(xls).toContain('<td>art-1</td>');
+
+      // Test ExcelJS Export
+      const xlsxBuffer = await exporter.exportToExcelJS(mockStrategy, [
+        {
+          id: 'manual-tests',
+          planId: 'p-1',
+          type: 'markdown',
+          content: '### Functional Verification\n- [ ] **TC-POS-1**: Verify login screen rule [BR-101] - "Accept successful redirect" under condition: "user credentials match"',
+          createdAt: new Date(),
+        }
+      ]);
+      expect(xlsxBuffer).toBeInstanceOf(Buffer);
+      expect(xlsxBuffer.length).toBeGreaterThan(0);
     });
   });
 });

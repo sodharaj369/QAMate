@@ -136,7 +136,7 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
           }
           break;
         case 'downloadReport':
-          await this.downloadReport(message.format);
+          await this.downloadReport(message.format, message.filename, message.sheets);
           break;
         case 'syncToADO':
           await this.syncToADO();
@@ -536,7 +536,11 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
     this.transitionTo('Plan');
   }
 
-  private async downloadReport(format: string) {
+  private async downloadReport(
+    format: string,
+    filename?: string,
+    sheets?: Record<string, boolean>,
+  ) {
     if (!this.currentConversation) return;
     const strategy = (this.currentConversation as any).generatedStrategy;
     const artifacts = (this.currentConversation as any).generatedArtifacts || [];
@@ -547,39 +551,41 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
 
     const { ExportFramework } = await import('@qamate/engine');
     const exporter = new ExportFramework();
-    let content = '';
-    let defaultExtension = 'txt';
+    let content: string | Buffer = '';
+    const defaultExtension = format;
 
-    switch (format) {
-      case 'md':
-        content = exporter.exportToMarkdown(strategy, artifacts);
-        defaultExtension = 'md';
-        break;
-      case 'csv':
-        content = exporter.exportToCSV(strategy, artifacts);
-        defaultExtension = 'csv';
-        break;
-      case 'xls':
-        content = exporter.exportToExcel(strategy, artifacts);
-        defaultExtension = 'xls';
-        break;
-      case 'html':
-        content = exporter.exportToHTML(strategy, artifacts);
-        defaultExtension = 'html';
-        break;
-      case 'json':
-        content = exporter.exportToJSON(strategy, artifacts);
-        defaultExtension = 'json';
-        break;
+    if (format === 'xlsx') {
+      content = await exporter.exportToExcelJS(strategy, artifacts, sheets);
+    } else {
+      switch (format) {
+        case 'md':
+          content = exporter.exportToMarkdown(strategy, artifacts);
+          break;
+        case 'csv':
+          content = exporter.exportToCSV(strategy, artifacts);
+          break;
+        case 'xls':
+          content = exporter.exportToExcel(strategy, artifacts);
+          break;
+        case 'html':
+          content = exporter.exportToHTML(strategy, artifacts);
+          break;
+        case 'json':
+          content = exporter.exportToJSON(strategy, artifacts);
+          break;
+      }
     }
 
+    const suggestedFilename = filename || `qamate-report.${defaultExtension}`;
+
     const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(`qamate-report.${defaultExtension}`),
+      defaultUri: vscode.Uri.file(suggestedFilename),
       filters: { 'Report Files': [defaultExtension] },
     });
 
     if (uri) {
-      await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf8'));
+      const data = typeof content === 'string' ? Buffer.from(content, 'utf8') : content;
+      await vscode.workspace.fs.writeFile(uri, data);
       vscode.window.showInformationMessage(`QAMate: Report successfully exported to ${uri.fsPath}`);
     }
   }
@@ -1926,25 +1932,75 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
         const covStatus = getStageStatus('Deliver');
         const getDeliverHtml = (): string => {
           if (!this.currentConversation) return '<p class="empty-text">Locked.</p>';
+          const reqTitle = (this.currentConversation as any).requirementTitle || 'Report';
+          const safeTitle = reqTitle
+            .replace(/[^a-zA-Z0-9-]/g, '-')
+            .replace(/-+/g, '-')
+            .substring(0, 30);
+          const timestamp = new Date().toISOString().substring(0, 10);
+          const defaultFilename = `QAMate-${safeTitle}-${timestamp}`;
+
           return `
-            <div class="page-container">
-              <div class="card" style="border: 1px solid var(--vscode-panel-border); padding: 10px; margin-bottom: 12px; background: rgba(0,0,0,0.15);">
-                <div style="font-weight: 600; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; color: var(--vscode-descriptionForeground);">Select Export Format:</div>
-                <select id="export-format-selector-final" style="font-size: 11px; width: 100%; padding: 4px; margin-bottom: 8px;">
-                  <option value="md">Markdown (.md)</option>
-                  <option value="csv">CSV Spreadsheet (.csv)</option>
-                  <option value="xls">Excel Spreadsheet (.xls)</option>
-                  <option value="html">HTML Report (.html)</option>
-                  <option value="json">JSON Metadata (.json)</option>
-                </select>
-                <button class="btn-secondary" onclick="triggerDownloadFinal()" style="font-size: 11px; padding: 4px; margin-top: 0;">Download Report</button>
+            <div class="page-container" style="animation: fade-in 0.18s ease-out; font-size: 11px;">
+              <div class="card" style="border: 1px solid var(--vscode-panel-border); padding: 12px; margin-bottom: 12px; background: rgba(0,0,0,0.15); text-align: left;">
+                <div style="font-weight: 700; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; color: var(--vscode-foreground);">
+                  📤 Export QA Deliverables
+                </div>
+                
+                <!-- Format selector -->
+                <div style="margin-bottom: 8px;">
+                  <label for="export-format" style="font-weight: 600; display: block; margin-bottom: 3px;">Format:</label>
+                  <select id="export-format" onchange="updateFilenameExtension(this.value)" style="font-size: 11px; width: 100%; padding: 4px; height: 24px; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border);">
+                    <option value="xlsx">Excel Workbook (.xlsx)</option>
+                    <option value="csv">CSV Spreadsheet (.csv)</option>
+                    <option value="md">Markdown Document (.md)</option>
+                    <option value="html">HTML Report (.html)</option>
+                    <option value="json">JSON Metadata (.json)</option>
+                  </select>
+                </div>
+
+                <!-- Filename input -->
+                <div style="margin-bottom: 8px;">
+                  <label for="export-filename" style="font-weight: 600; display: block; margin-bottom: 3px;">Filename:</label>
+                  <input type="text" id="export-filename" value="${defaultFilename}.xlsx" style="font-size: 11px; width: 100%; padding: 4px; box-sizing: border-box; height: 24px; font-family: inherit; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border);" />
+                </div>
+
+                <!-- Worksheets checkboxes -->
+                <div id="sheets-selection-container" style="margin-bottom: 12px; border: 1px solid var(--vscode-panel-border); padding: 8px; border-radius: 2px;">
+                  <div style="font-weight: 600; margin-bottom: 6px; font-size: 10px; text-transform: uppercase; color: var(--vscode-descriptionForeground);">Worksheets to Include:</div>
+                  <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                      <input type="checkbox" id="sheet-summary" checked style="width: auto; margin: 0;" /> Summary Sheet
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                      <input type="checkbox" id="sheet-strategy" checked style="width: auto; margin: 0;" /> QA Strategy
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                      <input type="checkbox" id="sheet-functional" checked style="width: auto; margin: 0;" /> Functional Test Cases
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                      <input type="checkbox" id="sheet-negative" checked style="width: auto; margin: 0;" /> Negative Test Cases
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                      <input type="checkbox" id="sheet-boundary" checked style="width: auto; margin: 0;" /> Boundary Checklist
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                      <input type="checkbox" id="sheet-risks" checked style="width: auto; margin: 0;" /> Risks Mapping
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                      <input type="checkbox" id="sheet-traceability" checked style="width: auto; margin: 0;" /> Traceability Matrix
+                    </label>
+                  </div>
+                </div>
+
+                <button class="btn-primary" onclick="triggerDownloadFinal()" style="font-size: 11px; padding: 6px; margin-top: 0; width: 100%; font-weight: 600;">Export Deliverables</button>
               </div>
 
-              <div class="card" style="border: 1px solid var(--vscode-panel-border); padding: 10px; margin-bottom: 12px;">
+              <div class="card" style="border: 1px solid var(--vscode-panel-border); padding: 10px; margin-bottom: 12px; text-align: left;">
                 <div style="font-weight: 600; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; color: var(--vscode-descriptionForeground);">Sync to Boards:</div>
                 <div style="display: flex; gap: 4px;">
-                  <button class="btn-secondary" onclick="postMessage({command: 'syncToADO'})" style="font-size: 11px; margin-top: 0; flex: 1;">Azure DevOps</button>
-                  <button class="btn-secondary" onclick="postMessage({command: 'syncToJira'})" style="font-size: 11px; margin-top: 0; flex: 1;">Jira Story</button>
+                  <button class="btn-secondary" onclick="postMessage({command: 'syncToADO'})" style="font-size: 10px; margin-top: 0; flex: 1;">Azure DevOps</button>
+                  <button class="btn-secondary" onclick="postMessage({command: 'syncToJira'})" style="font-size: 10px; margin-top: 0; flex: 1;">Jira Story</button>
                 </div>
               </div>
 
@@ -1952,9 +2008,34 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
             </div>
             
             <script>
+              function updateFilenameExtension(format) {
+                var input = document.getElementById('export-filename');
+                var val = input.value;
+                var dotIdx = val.lastIndexOf('.');
+                var baseName = dotIdx !== -1 ? val.substring(0, dotIdx) : val;
+                input.value = baseName + '.' + format;
+
+                var sheetsContainer = document.getElementById('sheets-selection-container');
+                if (format === 'json' || format === 'md' || format === 'html') {
+                  sheetsContainer.style.display = 'none';
+                } else {
+                  sheetsContainer.style.display = 'block';
+                }
+              }
+
               function triggerDownloadFinal() {
-                var format = document.getElementById('export-format-selector-final').value;
-                postMessage({ command: 'downloadReport', format: format });
+                var format = document.getElementById('export-format').value;
+                var filename = document.getElementById('export-filename').value;
+                var sheets = {
+                  summary: document.getElementById('sheet-summary').checked,
+                  strategy: document.getElementById('sheet-strategy').checked,
+                  functional: document.getElementById('sheet-functional').checked,
+                  negative: document.getElementById('sheet-negative').checked,
+                  boundary: document.getElementById('sheet-boundary').checked,
+                  risks: document.getElementById('sheet-risks').checked,
+                  traceability: document.getElementById('sheet-traceability').checked
+                };
+                postMessage({ command: 'downloadReport', format: format, filename: filename, sheets: sheets });
               }
             </script>
           `;

@@ -12,6 +12,7 @@
     "clean": "tsc --build --clean"
   },
   "dependencies": {
-    "@qamate/shared": "*"
+    "@qamate/shared": "*",
+    "exceljs": "^4.4.0"
   }
 }

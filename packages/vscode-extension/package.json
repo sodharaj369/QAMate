@@ -97,7 +97,8 @@
   },
   "dependencies": {
     "@qamate/engine": "*",
-    "@qamate/shared": "*"
+    "@qamate/shared": "*",
+    "exceljs": "^4.4.0"
   },
   "devDependencies": {
     "@types/vscode": "^1.75.0"
