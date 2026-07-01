@@ -145,7 +145,13 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
           await this.syncToJira();
           break;
         case 'submitIntake':
-          await this.runIntakeAnalysis(message.text, message.type);
+          if (message.type === 'Azure DevOps ID') {
+            await this.importAzureStory(message.text);
+          } else if (message.type === 'Jira Issue') {
+            await this.importJiraIssue(this.extractJiraKey(message.text));
+          } else {
+            await this.runIntakeAnalysis(message.text, message.type);
+          }
           break;
         case 'configureAzureWizard':
           await this.runAzureWizard();
@@ -915,14 +921,17 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
     return { id: val };
   }
 
-  private async importAzureStory() {
+  private async importAzureStory(presetInput?: string) {
     let org = this.context.workspaceState.get<string>('qamate.ado.org') || '';
     let project = this.context.workspaceState.get<string>('qamate.ado.project') || '';
     let pat = (await this.context.secrets.get('qamate.ado.pat')) || '';
 
-    const inputId = await vscode.window.showInputBox({
-      prompt: 'Enter Azure DevOps Work Item ID, #, or URL to Import',
-    });
+    let inputId = presetInput;
+    if (!inputId) {
+      inputId = await vscode.window.showInputBox({
+        prompt: 'Enter Azure DevOps Work Item ID, #, or URL to Import',
+      });
+    }
     if (!inputId) return;
 
     const normalized = this.normalizeAzureInput(inputId);
@@ -986,7 +995,7 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async importJiraIssue() {
+  private async importJiraIssue(presetKey?: string) {
     let domain = this.context.workspaceState.get<string>('qamate.jira.domain') || '';
     let email = this.context.workspaceState.get<string>('qamate.jira.email') || '';
     let token = (await this.context.secrets.get('qamate.jira.token')) || '';
@@ -1007,9 +1016,12 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
       await this.connectJira(domain, email, token);
     }
 
-    const key = await vscode.window.showInputBox({
-      prompt: 'Enter Jira Issue Key to Import (e.g. QA-101)',
-    });
+    let key = presetKey;
+    if (!key) {
+      key = await vscode.window.showInputBox({
+        prompt: 'Enter Jira Issue Key to Import (e.g. QA-101)',
+      });
+    }
     if (!key) return;
 
     this.isAnalyzing = true;
@@ -1025,6 +1037,15 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
       this.isAnalyzing = false;
       this.updateView();
     }
+  }
+
+  private extractJiraKey(input: string): string {
+    const val = input.trim();
+    const urlMatch = val.match(/\/browse\/([A-Z0-9-]+)/i);
+    if (urlMatch) {
+      return urlMatch[1];
+    }
+    return val;
   }
 
   public async connectAI(provider: string, key: string, model: string, endpoint: string) {
