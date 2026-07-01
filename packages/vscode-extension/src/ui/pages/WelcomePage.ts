@@ -103,22 +103,25 @@ export function renderWelcomePage(config: WelcomePageConfig): string {
   `;
 
   // Workspace Status Box
+  const hasAIAvailable = config.selectedAIProvider !== 'mock' || config.aiStatus.includes('VS Code LM');
+  const aiStatusColor = hasAIAvailable ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)';
+
   const systemStatusHtml = `
     <div style="font-size: 11px; line-height: 1.4;">
-      <div class="status-item" style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+      <div class="status-item" style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; text-align: left;">
         <span>AI Engine:</span>
-        <strong style="color: ${config.selectedAIProvider !== 'mock' ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'}">
-          ${config.selectedAIProvider !== 'mock' ? 'AI Available' : 'Offline Analysis: Ready'}
+        <strong style="color: ${aiStatusColor}">
+          ${hasAIAvailable ? 'Connected' : 'Offline Analysis'}
         </strong>
       </div>
-      <div style="font-size: 9px; color: var(--vscode-descriptionForeground); margin-bottom: 8px;">
-        AI can enhance investigation and review when connected.
+      <div style="font-size: 9px; color: var(--vscode-descriptionForeground); margin-bottom: 8px; text-align: left; line-height: 1.3;">
+        ${config.aiStatus}
       </div>
-      <div class="status-item" style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+      <div class="status-item" style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; text-align: left;">
         <span>Azure DevOps:</span>
         <strong style="color: ${config.adoConnected ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'}">${config.adoConnected ? 'Active' : 'Setup Available'}</strong>
       </div>
-      <div class="status-item" style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px;">
+      <div class="status-item" style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; text-align: left;">
         <span>Jira Boards:</span>
         <strong style="color: ${config.jiraConnected ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'}">${config.jiraConnected ? 'Active' : 'Setup Available'}</strong>
       </div>

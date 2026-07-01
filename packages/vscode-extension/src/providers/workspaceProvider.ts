@@ -10,6 +10,7 @@ import {
   ILLMProvider,
 } from '@qamate/engine';
 import { Theme } from '../ui/Theme.js';
+import { VSCodeLMProvider } from './vscodeLMProvider.js';
 import { strings } from '../ui/strings.js';
 import { icons } from '../ui/icons.js';
 import { WorkspaceStep, WorkspaceState } from '../ui/types.js';
@@ -1189,6 +1190,25 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
     const modelName = this.context.workspaceState.get<string>('qamate.ai.model') || 'mock-model';
     const endpoint = this.context.workspaceState.get<string>('qamate.ai.endpoint') || '';
 
+    if (providerId === 'mock') {
+      if ((vscode as any).lm) {
+        try {
+          const models = await (vscode as any).lm.selectChatModels({});
+          if (models && models.length > 0) {
+            const selectedModel = models.find((m: any) =>
+              m.name?.toLowerCase().includes('gpt-4') ||
+              m.name?.toLowerCase().includes('claude-3-5') ||
+              m.name?.toLowerCase().includes('sonnet')
+            ) || models[0];
+            return new VSCodeLMProvider(selectedModel);
+          }
+        } catch {
+          // ignore
+        }
+      }
+      return undefined;
+    }
+
     let apiKey: string | undefined;
     if (providerId === 'openai') {
       apiKey = await this.context.secrets.get('qamate.openai.key');
@@ -1199,6 +1219,11 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
     }
 
     try {
+      if (providerId === 'openai' || providerId === 'claude' || providerId === 'gemini') {
+        if (!apiKey) {
+          throw new Error('API key is missing.');
+        }
+      }
       return LLMProviderFactory.createProvider({
         providerId: providerId as any,
         apiKey,
@@ -1207,9 +1232,24 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
         temperature: 0.7,
       });
     } catch (err: any) {
-      vscode.window.showWarningMessage(
-        `QAMate: Failed to initialize AI provider: ${err.message}. Falling back to Rule-Based engine.`,
-      );
+      if ((vscode as any).lm) {
+        try {
+          const models = await (vscode as any).lm.selectChatModels({});
+          if (models && models.length > 0) {
+            const selectedModel = models.find((m: any) =>
+              m.name?.toLowerCase().includes('gpt-4') ||
+              m.name?.toLowerCase().includes('claude-3-5') ||
+              m.name?.toLowerCase().includes('sonnet')
+            ) || models[0];
+            vscode.window.showInformationMessage(
+              `QAMate: Configuration failed. Using fallback VS Code LM: ${selectedModel.name || selectedModel.id}`
+            );
+            return new VSCodeLMProvider(selectedModel);
+          }
+        } catch {
+          // ignore
+        }
+      }
       return undefined;
     }
   }
@@ -1270,11 +1310,37 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
     const adoConnected = !!(adoOrg && adoProject && hasAdoPat);
     const jiraConnected = !!(jiraDomain && jiraEmail && hasJiraToken);
 
-    let aiStatus = 'Offline Heuristics';
-    if (selectedAIProvider !== 'mock') {
+    let aiStatus = 'Offline Analysis: Ready';
+    let vsCodeLMAvailable = false;
+    let lmModelName = '';
+
+    if ((vscode as any).lm) {
+      try {
+        const models = await (vscode as any).lm.selectChatModels({});
+        if (models && models.length > 0) {
+          vsCodeLMAvailable = true;
+          const selectedModel = models.find((m: any) =>
+            m.name?.toLowerCase().includes('gpt-4') ||
+            m.name?.toLowerCase().includes('claude-3-5') ||
+            m.name?.toLowerCase().includes('sonnet')
+          ) || models[0];
+          lmModelName = selectedModel.name || selectedModel.id || 'Default';
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    if (selectedAIProvider === 'mock') {
+      if (vsCodeLMAvailable) {
+        aiStatus = `VS Code LM detected (Model: ${lmModelName})`;
+      } else {
+        aiStatus = 'Offline Analysis: Ready';
+      }
+    } else {
       const activeState =
         hasAIKey || selectedAIProvider === 'ollama' ? 'Connected' : 'Missing API Key';
-      aiStatus = `${selectedAIProvider.toUpperCase()} (${selectedAIModel || 'default'}) â€¢ ${activeState}`;
+      aiStatus = `${selectedAIProvider.toUpperCase()} (${selectedAIModel || 'default'}) • ${activeState}`;
     }
 
     const aiResult = this.context.workspaceState.get<{

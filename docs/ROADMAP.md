@@ -44,6 +44,14 @@ Each phase's features must be functionally integrated, testable, and demonstrabl
   - **Prepare (QA Readiness)**: Conditional questionnaire appearing only if gaps exist, explaining *why* queries matter.
   - **Plan (Test Strategy)**: Strategy summary compiling editable scope details, risks, priorities, approaches, and automation suggestions.
 
+#### Sprint: PF-2 — AI Provider Discovery
+- Detect VS Code Language Model API support.
+- Automatically use GitHub Copilot when available.
+- Detect existing VS Code AI providers.
+- Show provider and model name.
+- Fall back to Offline Analysis if unavailable.
+- Only ask for API keys when no usable provider exists or the user explicitly wants a different model.
+
 ### Phase 3 — QA Deliverables
 * **Goal**: Produce manual/automated test suites, review coverage, and export artifacts.
 * **Deliverables**:

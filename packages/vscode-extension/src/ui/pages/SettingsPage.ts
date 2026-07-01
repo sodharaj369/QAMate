@@ -37,22 +37,93 @@ export function renderSettingsPage(config: SettingsPageConfig): string {
     })
     .join('');
 
-  // AI Section (Value-First Offline support info)
+  // Determine states of each provider
+  const isVSCodeLMActive = config.selectedAIProvider === 'mock' && config.aiStatus.includes('VS Code LM');
+  const isOpenAIActive = config.selectedAIProvider === 'openai' && config.hasAIKey;
+  const isClaudeActive = config.selectedAIProvider === 'claude' && config.hasAIKey;
+  const isGeminiActive = config.selectedAIProvider === 'gemini' && config.hasAIKey;
+  const isOllamaActive = config.selectedAIProvider === 'ollama';
+
   const aiSectionHtml = `
     <div style="margin-bottom: 12px; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 12px;">
-      <div style="font-weight: 600; font-size: 11px; text-transform: uppercase; margin-bottom: 4px; color: var(--vscode-foreground); display: flex; align-items: center; gap: 4px;">
-        ${icons.rocket} AI Engine
-      </div>
-      <div style="font-size: 10px; color: ${config.selectedAIProvider !== 'mock' ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'}; font-weight: 500; margin-bottom: 4px;">
-        Status: <strong>${config.selectedAIProvider !== 'mock' ? config.aiStatus : 'Offline Analysis: Ready'}</strong>
-      </div>
-      <div style="font-size: 10px; color: var(--vscode-descriptionForeground); margin-bottom: 8px; line-height: 1.4;">
-        AI can enhance investigation and review when connected.
+      <div style="font-weight: 700; font-size: 10px; text-transform: uppercase; margin-bottom: 8px; color: var(--vscode-foreground); display: flex; align-items: center; gap: 4px;">
+        ${icons.rocket} AI Providers Priority List
       </div>
       
-      <div style="display: flex; gap: 4px;">
-        <button class="btn-secondary" onclick="postMessage({command: 'configureAIWizard'})" style="font-size: 10px; padding: 4px 8px; margin: 0; flex: 1;">Configure AI</button>
-        ${config.selectedAIProvider !== 'mock' ? `<button class="btn-secondary" onclick="postMessage({command: 'disconnectAI'})" style="font-size: 10px; padding: 4px 8px; margin: 0; width: auto; flex: 1; border-color: var(--vscode-testing-iconFailedColor, #F48771); color: var(--vscode-testing-iconFailedColor, #F48771);">Disconnect</button>` : ''}
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- VS Code LM -->
+        <div style="padding: 6px; border: 1px solid ${isVSCodeLMActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border)'}; border-radius: 4px; background: ${isVSCodeLMActive ? 'rgba(0,122,204,0.05)' : 'transparent'}; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+            <span style="font-weight: 600; font-size: 11px;">VS Code Language Model API</span>
+            <span style="font-size: 9px; font-weight: 700; color: ${isVSCodeLMActive ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'};">
+              ${isVSCodeLMActive ? 'Active' : 'Priority 1 (Auto)'}
+            </span>
+          </div>
+          <div style="font-size: 9px; color: var(--vscode-descriptionForeground);">
+            Uses Copilot/VS Code default AI. No key needed.
+          </div>
+        </div>
+
+        <!-- OpenAI -->
+        <div style="padding: 6px; border: 1px solid ${isOpenAIActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border)'}; border-radius: 4px; background: ${isOpenAIActive ? 'rgba(0,122,204,0.05)' : 'transparent'}; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+            <span style="font-weight: 600; font-size: 11px;">OpenAI GPT</span>
+            <span style="font-size: 9px; font-weight: 700; color: ${isOpenAIActive ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'};">
+              ${isOpenAIActive ? 'Active' : 'Not Configured'}
+            </span>
+          </div>
+          <div style="font-size: 9px; color: var(--vscode-descriptionForeground); display: flex; justify-content: space-between; align-items: center;">
+            <span>Custom developer-provided key.</span>
+            <span style="color: var(--vscode-textLink-foreground); cursor: pointer;" onclick="postMessage({command: 'configureAIWizard'})">Configure</span>
+          </div>
+        </div>
+
+        <!-- Claude -->
+        <div style="padding: 6px; border: 1px solid ${isClaudeActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border)'}; border-radius: 4px; background: ${isClaudeActive ? 'rgba(0,122,204,0.05)' : 'transparent'}; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+            <span style="font-weight: 600; font-size: 11px;">Anthropic Claude</span>
+            <span style="font-size: 9px; font-weight: 700; color: ${isClaudeActive ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'};">
+              ${isClaudeActive ? 'Active' : 'Not Configured'}
+            </span>
+          </div>
+          <div style="font-size: 9px; color: var(--vscode-descriptionForeground); display: flex; justify-content: space-between; align-items: center;">
+            <span>Custom developer-provided key.</span>
+            <span style="color: var(--vscode-textLink-foreground); cursor: pointer;" onclick="postMessage({command: 'configureAIWizard'})">Configure</span>
+          </div>
+        </div>
+
+        <!-- Gemini -->
+        <div style="padding: 6px; border: 1px solid ${isGeminiActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border)'}; border-radius: 4px; background: ${isGeminiActive ? 'rgba(0,122,204,0.05)' : 'transparent'}; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+            <span style="font-weight: 600; font-size: 11px;">Google Gemini</span>
+            <span style="font-size: 9px; font-weight: 700; color: ${isGeminiActive ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'};">
+              ${isGeminiActive ? 'Active' : 'Not Configured'}
+            </span>
+          </div>
+          <div style="font-size: 9px; color: var(--vscode-descriptionForeground); display: flex; justify-content: space-between; align-items: center;">
+            <span>Custom developer-provided key.</span>
+            <span style="color: var(--vscode-textLink-foreground); cursor: pointer;" onclick="postMessage({command: 'configureAIWizard'})">Configure</span>
+          </div>
+        </div>
+
+        <!-- Ollama -->
+        <div style="padding: 6px; border: 1px solid ${isOllamaActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border)'}; border-radius: 4px; background: ${isOllamaActive ? 'rgba(0,122,204,0.05)' : 'transparent'}; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+            <span style="font-weight: 600; font-size: 11px;">Ollama Local</span>
+            <span style="font-size: 9px; font-weight: 700; color: ${isOllamaActive ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'};">
+              ${isOllamaActive ? 'Active' : 'Not Configured'}
+            </span>
+          </div>
+          <div style="font-size: 9px; color: var(--vscode-descriptionForeground); display: flex; justify-content: space-between; align-items: center;">
+            <span>Offline-friendly local LLM endpoint.</span>
+            <span style="color: var(--vscode-textLink-foreground); cursor: pointer;" onclick="postMessage({command: 'configureAIWizard'})">Configure</span>
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 10px; display: flex; gap: 4px;">
+        <button class="btn-secondary" onclick="postMessage({command: 'configureAIWizard'})" style="font-size: 10px; padding: 4px 8px; margin: 0; flex: 1;">Connect Custom AI</button>
+        ${config.selectedAIProvider !== 'mock' ? `<button class="btn-secondary" onclick="postMessage({command: 'disconnectAI'})" style="font-size: 10px; padding: 4px 8px; margin: 0; width: auto; flex: 1; border-color: var(--vscode-testing-iconFailedColor, #F48771); color: var(--vscode-testing-iconFailedColor, #F48771);">Disconnect Custom</button>` : ''}
       </div>
     </div>
   `;

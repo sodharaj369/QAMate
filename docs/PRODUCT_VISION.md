@@ -38,4 +38,5 @@ Every pull request, design review, and feature build must strictly adhere to the
 6. **Strategy Before Generation**: Always present the Test Strategy for review and approval before generating test suites or code skeletons.
 7. **Preview Before Export**: The user must review and approve test deliverables before export or synchronization.
 8. **Always Explain Recommendations**: Every recommendation, risk, and priority must clearly explain *what* happened, *why*, and *what the user should do next*.
+9. **Zero-Configuration AI**: QAMate automatically discovers and uses AI providers already available in the user's VS Code environment. Users should not be required to configure an API key if a compatible provider is already installed and authenticated.
 

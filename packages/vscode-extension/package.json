@@ -1,5 +1,10 @@
 {
-  "name": "@qamate/vscode-extension",
+  "name": "qamate",
+  "publisher": "qamate",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sodharaj369/QAMate"
+  },
   "version": "0.1.0",
   "private": true,
   "type": "module",

@@ -14,7 +14,28 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install pnpm
+      - name: Detect package manager
+        id: detect-package-manager
+        run: |
+          if [ -f "${{ github.workspace }}/yarn.lock" ]; then
+            echo "manager=yarn" >> $GITHUB_OUTPUT
+            echo "command=yarn install --immutable" >> $GITHUB_OUTPUT
+            echo "runner=yarn" >> $GITHUB_OUTPUT
+            exit 0
+          elif [ -f "${{ github.workspace }}/pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> $GITHUB_OUTPUT
+            echo "command=pnpm install --frozen-lockfile" >> $GITHUB_OUTPUT
+            echo "runner=pnpm" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "manager=npm" >> $GITHUB_OUTPUT
+            echo "command=npm ci" >> $GITHUB_OUTPUT
+            echo "runner=npm run" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+      - name: Install pnpm (if needed)
+        if: steps.detect-package-manager.outputs.manager == 'pnpm'
         uses: pnpm/action-setup@v3
         with:
           version: 9
@@ -23,19 +44,42 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: ${{ steps.detect-package-manager.outputs.manager }}
 
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: |
+          echo "✅ Installing dependencies using ${{ steps.detect-package-manager.outputs.manager }}"
+          ${{ steps.detect-package-manager.outputs.command }}
 
       - name: Verify Formatting
-        run: pnpm run format:check
+        run: |
+          echo "✅ Verifying codebase formatting"
+          ${{ steps.detect-package-manager.outputs.runner }} format:check
 
       - name: Lint Codebase
-        run: pnpm run lint
+        run: |
+          echo "✅ Running linter checks"
+          ${{ steps.detect-package-manager.outputs.runner }} lint
 
       - name: Compile Codebase
-        run: pnpm run build
+        run: |
+          echo "✅ Building extension and core modules"
+          ${{ steps.detect-package-manager.outputs.runner }} build
 
       - name: Run Tests
-        run: pnpm run test
+        run: |
+          echo "✅ Running test suite"
+          ${{ steps.detect-package-manager.outputs.runner }} test
+
+      - name: Package Extension
+        run: |
+          echo "✅ Packaging extension into VSIX package"
+          npx @vscode/vsce package --no-dependencies --out qamate.vsix
+        working-directory: packages/vscode-extension
+
+      - name: Upload Packaged VSIX Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qamate-extension
+          path: packages/vscode-extension/qamate.vsix
+          if-no-files-found: error

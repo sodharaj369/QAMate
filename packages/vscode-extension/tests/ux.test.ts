@@ -110,7 +110,7 @@ describe('Welcome Screen Page Rendering tests', () => {
     });
 
     expect(html).toContain('active_requirement.md');
-    expect(html).toContain('AI Available');
+    expect(html).toContain('Connected');
     expect(html).toContain('conv-1');
   });
 });
