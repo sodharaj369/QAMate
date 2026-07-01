@@ -440,6 +440,7 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
       requestSent: false,
       responseReceived: false,
       enhancementApplied: false,
+      errorMessage: undefined as string | undefined,
     };
     this.context.workspaceState.update('qamateActiveAIResult', initialAIResult);
     this.loadingLogs = [
@@ -477,7 +478,29 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
       this.loadingLogs.push('Compiling heuristics health report card...');
       this.updateView();
 
-      const conversation = await this.engine.createSession(requirement);
+      const activeProvider = await this.resolveActiveLLMProvider();
+      let conversation: Conversation;
+
+      if (activeProvider) {
+        initialAIResult.requestSent = true;
+        initialAIResult.providerName = activeProvider.name;
+        this.context.workspaceState.update('qamateActiveAIResult', initialAIResult);
+        try {
+          conversation = await this.engine.createSession(requirement, activeProvider);
+          initialAIResult.responseReceived = true;
+          initialAIResult.enhancementApplied = true;
+          this.context.workspaceState.update('qamateActiveAIResult', initialAIResult);
+        } catch (err: any) {
+          initialAIResult.responseReceived = false;
+          initialAIResult.enhancementApplied = false;
+          initialAIResult.errorMessage = err.message || 'AI analysis failed.';
+          this.context.workspaceState.update('qamateActiveAIResult', initialAIResult);
+          vscode.window.showWarningMessage(`QAMate: AI analysis failed (${err.message}). Using offline analysis.`);
+          conversation = await this.engine.createSession(requirement);
+        }
+      } else {
+        conversation = await this.engine.createSession(requirement);
+      }
 
       // Persist chosen persona context on session
       const selectedPersona =
@@ -1609,21 +1632,21 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
                   <div style="display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;">
                     <span style="color: var(--vscode-testing-iconPassedColor, #89D185); display: flex; align-items: center; gap: 3px;">✓ Rule Engine</span>
                     ${
-                      selectedAIProvider !== 'mock'
-                        ? aiResult.requestSent
-                          ? aiResult.enhancementApplied
-                            ? `<span style="color: var(--vscode-testing-iconPassedColor, #89D185); display: flex; align-items: center; gap: 3px;">✓ ${selectedAIModel || 'GPT-4'} Enhanced</span>`
-                            : `<span style="color: var(--vscode-editorWarning-foreground, #CCA700); display: flex; align-items: center; gap: 3px;" title="${aiResult.errorMessage || ''}">⚠ ${selectedAIModel || 'GPT-4'} Unavailable</span>`
-                          : `<span style="color: var(--vscode-descriptionForeground); display: flex; align-items: center; gap: 3px;">● ${selectedAIModel || 'GPT-4'} Pending</span>`
-                        : ''
+                      aiResult.requestSent
+                        ? aiResult.enhancementApplied
+                          ? `<span style="color: var(--vscode-testing-iconPassedColor, #89D185); display: flex; align-items: center; gap: 3px;">✓ ${aiResult.providerName || 'AI'} Enhanced</span>`
+                          : `<span style="color: var(--vscode-testing-iconFailedColor, #F48771); display: flex; align-items: center; gap: 3px;" title="${aiResult.errorMessage || ''}">❌ ${aiResult.providerName || 'AI'} failed</span>`
+                        : vsCodeLMAvailable
+                          ? `<span style="color: var(--vscode-testing-iconPassedColor, #89D185); display: flex; align-items: center; gap: 3px;">✓ VS Code AI (${lmModelName})</span>`
+                          : ''
                     }
                   </div>
                   ${
-                    selectedAIProvider !== 'mock' &&
-                    aiResult.requestSent &&
-                    !aiResult.enhancementApplied &&
-                    aiResult.errorMessage
-                      ? `<div style="font-size: 8px; color: var(--vscode-testing-iconFailedColor, #F48771); margin-top: 4px;">${aiResult.errorMessage}</div>`
+                    aiResult.requestSent && !aiResult.enhancementApplied
+                      ? `<div style="font-size: 8px; color: var(--vscode-testing-iconFailedColor, #F48771); margin-top: 4px;">
+                           ${aiResult.errorMessage || 'Authentication failed'}<br/>
+                           Using Offline Analysis instead.
+                         </div>`
                       : ''
                   }
                 </div>
@@ -1634,8 +1657,12 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
                   <div style="display: flex; align-items: center; gap: 4px;">✓ <strong>${viewModel.entities.split(',').filter(Boolean).length || 4}</strong> Acceptance Criteria Mapped</div>
                   <div style="display: flex; align-items: center; gap: 4px; color: var(--vscode-editorWarning-foreground, #CCA700);">⚠ <strong>2</strong> Risks Detected</div>
                 </div>
-                <div style="font-weight: 700; font-size: 9px; margin-top: 8px; color: var(--vscode-descriptionForeground); text-transform: uppercase; letter-spacing: 0.5px;">
-                  Ready to build strategy
+                <div style="font-weight: 700; font-size: 10px; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                  ${
+                    this.currentConversation && this.currentConversation.questions.length > 0
+                      ? `<span style="color: var(--vscode-editorWarning-foreground, #CCA700);">${this.currentConversation.questions.length} blocking decisions required</span>`
+                      : '<span style="color: var(--vscode-testing-iconPassedColor, #89D185);">Requirement Ready • No blocking questions found.</span>'
+                  }
                 </div>
               </div>
 
@@ -1701,14 +1728,30 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
         const getClarificationContentHtml = (): string => {
           if (clarStatus === 'locked') return '<p class="empty-text">Locked.</p>';
           if (clarStatus === 'completed')
-            return `âœ“ QA Readiness check completed (${answersCount} queries resolved).`;
+            return `✓ QA Readiness check completed (${answersCount} queries resolved).`;
 
           if (questions.length === 0) {
             return `
-              <div class="page-container">
-                <p style="color: var(--vscode-button-background); font-weight: 500; margin-bottom: 4px;">âœ“ Requirement ready.</p>
-                <p style="font-size: 11px; color: var(--vscode-descriptionForeground); line-height: 1.4;">No blocking gap or ambiguities were identified.</p>
-                <button class="btn-primary" onclick="postMessage({command: 'executeNext'})" style="margin-top: 12px;">Continue to Strategy</button>
+              <div class="page-container" style="animation: fade-in 0.18s ease-out; font-size: 11px;">
+                <div style="font-weight: bold; font-size: 13px; color: var(--vscode-foreground); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">QA Readiness</div>
+                <div class="card" style="border: 1px solid var(--vscode-testing-iconPassedColor, #89D185); background: rgba(137, 209, 133, 0.05); padding: 12px; border-radius: 4px; margin-bottom: 12px; text-align: left; line-height: 1.6;">
+                  <div style="font-weight: 600; font-size: 11px; color: var(--vscode-testing-iconPassedColor, #89D185); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    ✓ Business rules understood
+                  </div>
+                  <div style="font-weight: 600; font-size: 11px; color: var(--vscode-testing-iconPassedColor, #89D185); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    ✓ Acceptance criteria sufficient
+                  </div>
+                  <div style="font-weight: 600; font-size: 11px; color: var(--vscode-testing-iconPassedColor, #89D185); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    ✓ Risks identified
+                  </div>
+                  <div style="font-weight: 600; font-size: 11px; color: var(--vscode-testing-iconPassedColor, #89D185); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    ✓ Strategy can be generated
+                  </div>
+                  <div style="border-top: 1px solid var(--vscode-panel-border); margin-top: 8px; padding-top: 8px; font-weight: 600; color: var(--vscode-descriptionForeground);">
+                    No additional clarification required.
+                  </div>
+                </div>
+                <button class="btn-primary" onclick="postMessage({command: 'executeNext'})" style="margin-top: 4px;">Continue ➔</button>
               </div>
             `;
           }
@@ -1733,26 +1776,21 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
 
               return `
               <div class="q-card" id="q-card-${idx}" style="display: ${displayStyle}; border: 1px solid var(--vscode-panel-border); padding: 10px; border-radius: 4px; background: var(--vscode-sideBarSectionHeader-background);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <span style="font-weight: 600; font-size: 9px; color: var(--vscode-button-background); text-transform: uppercase; letter-spacing: 0.5px;">
-                    📂 ${q.category}
-                  </span>
-                  <span style="font-weight: 700; font-size: 8px; padding: 1px 4px; border-radius: 2px; text-transform: uppercase; background: ${q.priority === 'high' ? 'var(--vscode-testing-iconFailedColor, #F48771)' : 'var(--vscode-badge-background)'}; color: ${q.priority === 'high' ? '#fff' : 'var(--vscode-badge-foreground)'};">
-                    ${q.priority} priority
-                  </span>
+                <div style="font-weight: 700; font-size: 11px; margin-bottom: 10px; color: var(--vscode-editorWarning-foreground, #CCA700); text-transform: uppercase; letter-spacing: 0.5px;">
+                  ${questions.length === 1 ? '1 blocking decision required' : `${questions.length} decisions required before strategy can be generated`}
+                </div>
+                
+                <div style="background: rgba(0,0,0,0.15); padding: 8px; border-left: 2px solid var(--vscode-button-background); margin-bottom: 12px; font-size: 10px; color: var(--vscode-descriptionForeground); line-height: 1.4; border-radius: 2px;">
+                  <strong>📂 Topic:</strong> ${q.category}<br/>
+                  <strong>🔍 Why?</strong> ${q.rationale}
                 </div>
 
                 <div style="font-weight: 600; font-size: 12px; line-height: 1.4; color: var(--vscode-foreground); margin-bottom: 8px;">
-                  ${idx + 1}. ${q.text}
+                  Question: "${q.text}"
                 </div>
 
                 <div style="margin: 8px 0;">
                   ${optionsHtml}
-                </div>
-
-                <div style="background: rgba(0,0,0,0.15); padding: 8px; border-left: 2px solid var(--vscode-button-background); margin-top: 10px; font-size: 10px; color: var(--vscode-descriptionForeground); line-height: 1.4; border-radius: 2px;">
-                  <strong>🔍 Why ask:</strong> ${q.rationale}
-                  ${q.skipRisk && q.skipRisk !== 'None' ? `<br/><strong style="color: var(--vscode-testing-iconFailedColor, #F48771);">⚠ Skip Risk:</strong> ${q.skipRisk}` : ''}
                 </div>
               </div>
             `;

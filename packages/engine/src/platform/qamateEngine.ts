@@ -5,6 +5,8 @@ import {
   TestStrategy,
   QAArtifact,
   UserPersona,
+  QuestionCandidate,
+  Question,
 } from '../domain.js';
 import { IConversationStorage, ILLMProvider } from '../interfaces/index.js';
 import {
@@ -42,7 +44,7 @@ export class QAMateEngine {
     return this.storage.listConversations();
   }
 
-  public async createSession(requirement: Requirement): Promise<Conversation> {
+  public async createSession(requirement: Requirement, provider?: ILLMProvider): Promise<Conversation> {
     // 1. Validate
     const validator = new DefaultRequirementValidator();
     const validation = await validator.validate(requirement);
@@ -56,16 +58,124 @@ export class QAMateEngine {
     const analyzer = new DefaultRequirementAnalyzer(validator, scorer, [strategy]);
     const analysisResult = await analyzer.analyze(requirement);
 
-    // 3. Plan Clarifications
-    const generator = new DefaultQuestionCandidateGenerator();
-    const prioritizer = new DefaultQuestionPrioritizer();
-    const deduplicator = new DefaultQuestionDeduplicator();
-    const planner = new DefaultQuestionPlanner();
-    const clarifier = new DefaultClarificationEngine(generator, prioritizer, deduplicator, planner);
-    const { candidates, activeQuestions } = await clarifier.planClarifications(
-      requirement,
-      analysisResult.intelligence,
-    );
+    let candidates: QuestionCandidate[] = [];
+    let activeQuestions: Question[] = [];
+
+    if (provider) {
+      const prompt = `You are a Senior Principal QA Engineer. Review the following software requirement specification and the static rule-based analysis findings to assess QA readiness.
+
+Requirement:
+"""
+${requirement.content}
+"""
+
+Static Findings:
+- Business Rules:
+${analysisResult.intelligence.businessRules.map((r: any) => `- [${r.id}] ${r.description} (Condition: ${r.condition}, Outcome: ${r.expectedOutcome})`).join('\n')}
+- Actors: ${analysisResult.intelligence.actors.map((a: any) => a.name).join(', ')}
+
+Review this requirement and decide if it is ready to write complete, high-quality test cases.
+Only ask questions if the answer materially changes the test strategy, risks, generated test cases, or coverage. 
+Do NOT ask boilerplate questions. Ask a maximum of 3 blocking questions. If no critical blocking decisions are needed, mark the requirement as ready with no questions.
+
+You must respond with a raw JSON object matching this TypeScript interface (do not return any markdown format, code ticks, or extra text):
+{
+  "ready": boolean,
+  "blockingQuestions": {
+    "topic": string;
+    "question": string;
+    "whyAsking": string;
+    "options"?: string[];
+  }[],
+  "additionalBusinessRules"?: {
+    "description": string;
+    "condition": string;
+    "expectedOutcome": string;
+  }[],
+  "additionalActors"?: {
+    "name": string;
+    "description": string;
+  }[]
+}
+`;
+
+      const responseText = await provider.generate(prompt);
+      let parsed: any;
+      try {
+        const cleanedText = responseText.replace(/```json|```/gi, '').trim();
+        parsed = JSON.parse(cleanedText);
+      } catch (err) {
+        console.error('Failed to parse AI readiness response:', responseText, err);
+        throw new Error('AI returned an invalid JSON response.');
+      }
+
+      if (parsed) {
+        if (parsed.additionalBusinessRules && Array.isArray(parsed.additionalBusinessRules)) {
+          let ruleCounter = analysisResult.intelligence.businessRules.length + 1;
+          for (const rule of parsed.additionalBusinessRules) {
+            analysisResult.intelligence.businessRules.push({
+              id: `BR-${String(ruleCounter++).padStart(3, '0')}`,
+              description: rule.description,
+              condition: rule.condition || 'Always active',
+              expectedOutcome: rule.expectedOutcome,
+            });
+          }
+        }
+
+        if (parsed.additionalActors && Array.isArray(parsed.additionalActors)) {
+          for (const actor of parsed.additionalActors) {
+            if (!analysisResult.intelligence.actors.some(a => a.name.toLowerCase() === actor.name.toLowerCase())) {
+              analysisResult.intelligence.actors.push({
+                name: actor.name,
+                description: actor.description,
+              });
+            }
+          }
+        }
+
+        if (parsed.blockingQuestions && Array.isArray(parsed.blockingQuestions)) {
+          const cappedQuestions = parsed.blockingQuestions.slice(0, 3);
+          const conversationId = `conv-${requirement.id}`;
+          let idCounter = 1;
+
+          for (const q of cappedQuestions) {
+            const cand: QuestionCandidate = {
+              id: `CAND-${String(idCounter).padStart(3, '0')}`,
+              conversationId,
+              text: q.question,
+              type: q.options && Array.isArray(q.options) && q.options.length > 0 ? 'single-choice' : 'open-text',
+              options: q.options,
+              category: q.topic || 'General Clarification',
+              impact: 'blocking-understanding',
+              rationale: q.whyAsking || 'Material decision affecting test cases.',
+              skipRisk: 'Incomplete scenario coverage.',
+              priority: 'high',
+            };
+            candidates.push(cand);
+
+            const activeQ: Question = {
+              ...cand,
+              id: `Q-${String(idCounter).padStart(3, '0')}`,
+              status: 'pending',
+            };
+            activeQuestions.push(activeQ);
+            idCounter++;
+          }
+        }
+      }
+    } else {
+      const generator = new DefaultQuestionCandidateGenerator();
+      const prioritizer = new DefaultQuestionPrioritizer();
+      const deduplicator = new DefaultQuestionDeduplicator();
+      const planner = new DefaultQuestionPlanner();
+      const clarifier = new DefaultClarificationEngine(generator, prioritizer, deduplicator, planner);
+      const clarifResult = await clarifier.planClarifications(
+        requirement,
+        analysisResult.intelligence,
+      );
+      candidates = clarifResult.candidates;
+      activeQuestions = clarifResult.activeQuestions;
+    }
 
     // 4. Construct Conversation
     const conversation: Conversation = {
