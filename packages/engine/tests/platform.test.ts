@@ -13,7 +13,10 @@ import {
   LocalMarkdownProvider,
 } from '../src/platform/index.js';
 import { ILLMProvider } from '../src/interfaces/index.js';
-import { QAArtifact, TestStrategy, Requirement } from '../src/domain.js';
+import { QAArtifact, TestStrategy, Requirement, RequirementIntelligenceReport } from '../src/domain.js';
+import { RuleBasedDecisionMatrix } from '../src/decision-engine/decisionMatrix.js';
+import { QADecisionEngine, ConfidenceEngine, MaterialClarification, StrategySelector } from '../src/index.js';
+import { QuestionCandidate } from '../src/domain.js';
 
 describe('Sprint 5C Platform Services tests', () => {
   // 1. Security Foundation
@@ -131,8 +134,12 @@ describe('Sprint 5C Platform Services tests', () => {
       const trust = new TrustFramework();
       const orchestrator = new AIOrchestrator(efficiency, telemetry, trust);
 
-      const response = await orchestrator.orchestrate('requirement-analysis', 'Prompt', { costMode: 'cheapest' });
-      expect(response).toContain('Rule Engine Mock Output');
+      const response = await orchestrator.orchestrate({
+        taskType: 'requirement-analysis',
+        prompt: 'Prompt',
+        costMode: 'cheapest'
+      });
+      expect(response.content).toContain('Rule Engine Mock Output');
       expect(telemetry.getReport().skippedRequests).toBe(1);
     });
 
@@ -154,14 +161,77 @@ describe('Sprint 5C Platform Services tests', () => {
         generate: async () => 'Success Response'
       };
 
-      const response = await orchestrator.orchestrate('test-generation', 'Prompt', {
+      const response = await orchestrator.orchestrate({
+        taskType: 'test-generation',
+        prompt: 'Prompt',
         costMode: 'balanced',
+      }, {
         localProvider: failingProvider,
         cloudProviderCheap: successProvider,
       });
 
-      expect(response).toBe('Success Response');
+      expect(response.content).toBe('Success Response');
       expect(telemetry.getReport().totalRequests).toBe(1); // 1 success call
+    });
+
+    it('should failover when a provider exceeds the 30-second timeout limit', async () => {
+      vi.useFakeTimers();
+      const efficiency = new EfficiencyEngine();
+      const telemetry = new TelemetryTracker();
+      const trust = new TrustFramework();
+      const orchestrator = new AIOrchestrator(efficiency, telemetry, trust);
+
+      const hangingProvider: ILLMProvider = {
+        id: 'hang',
+        name: 'Hanging Provider',
+        generate: () => new Promise((resolve) => setTimeout(() => resolve('Hanging resolved'), 100000))
+      };
+
+      const successProvider: ILLMProvider = {
+        id: 'success',
+        name: 'Success Provider',
+        generate: async () => 'Recovered Response'
+      };
+
+      const orchestratePromise = orchestrator.orchestrate({
+        taskType: 'test-generation',
+        prompt: 'Prompt',
+        costMode: 'balanced',
+      }, {
+        localProvider: hangingProvider,
+        cloudProviderCheap: successProvider,
+      });
+
+      // Advance the timer past 30 seconds
+      await vi.advanceTimersByTimeAsync(31000);
+
+      const response = await orchestratePromise;
+      expect(response.content).toBe('Recovered Response');
+      
+      vi.useRealTimers();
+    });
+
+    it('should block execution when token budget is exceeded', async () => {
+      const efficiency = new EfficiencyEngine();
+      const telemetry = new TelemetryTracker();
+      const trust = new TrustFramework();
+      const orchestrator = new AIOrchestrator(efficiency, telemetry, trust);
+
+      // Set budget limit to low value (100 tokens)
+      telemetry.setTokenBudgetLimit(100);
+
+      // Log a request that consumes 150 tokens to blow the budget
+      telemetry.logRequest('mock', 'default', 100, 50, 10);
+
+      // Now run another request
+      const response = await orchestrator.orchestrate({
+        taskType: 'test-generation',
+        prompt: 'Should be blocked',
+        costMode: 'balanced'
+      });
+
+      expect(response.content).toContain('Blocked: Token budget limit reached');
+      expect(response.warnings?.[0]).toContain('Token budget exceeded!');
     });
   });
 
@@ -243,6 +313,109 @@ describe('Sprint 5C Platform Services tests', () => {
       ]);
       expect(xlsxBuffer).toBeInstanceOf(Buffer);
       expect(xlsxBuffer.length).toBeGreaterThan(0);
+    });
+  });
+
+  // 11. QA Decision Engine & Reasoning
+  describe('QADecisionEngine', () => {
+    it('should evaluate low complexity and risk specs correctly', () => {
+      const engine = new QADecisionEngine();
+      const requirement: Requirement = {
+        id: 'req-1',
+        projectId: 'p-1',
+        title: 'Simple title',
+        content: 'Small specification text details.',
+        contentType: 'markdown',
+        version: 1,
+        status: 'draft',
+      };
+      const intelligence: RequirementIntelligenceReport = {
+        businessRules: [
+          { id: 'BR-1', description: 'Rule 1', condition: 'C1', expectedOutcome: 'O1' },
+          { id: 'BR-2', description: 'Rule 2', condition: 'C2', expectedOutcome: 'O2' },
+          { id: 'BR-3', description: 'Rule 3', condition: 'C3', expectedOutcome: 'O3' },
+        ],
+        actors: [
+          { name: 'User', description: 'U1' }
+        ],
+        domains: [],
+        boundaryRules: [],
+        securityChecklists: [],
+      };
+
+      const result = engine.analyze(requirement, intelligence, []);
+      expect(result.complexity).toBe('low');
+      expect(result.riskLevel).toBe('low');
+      expect(result.strategy).toBe('Sanity & Smoke QA');
+      expect(result.isReady).toBe(true);
+      expect(result.requirementQuality).toBe(80); // 100 - 20 (thin spec)
+    });
+
+    it('should evaluate high complexity and high risk specs correctly and skip non-material questions', () => {
+      const engine = new QADecisionEngine();
+      const requirement: Requirement = {
+        id: 'req-2',
+        projectId: 'p-1',
+        title: 'Complex Banking title',
+        content: 'System must authenticate users via encrypted tokens. This security requirement involves multiple transaction latency thresholds for concurrent operations.'.repeat(10), // long text
+        contentType: 'markdown',
+        version: 1,
+        status: 'draft',
+      };
+      const intelligence: RequirementIntelligenceReport = {
+        businessRules: [
+          { id: 'BR-1', description: 'Rule 1', condition: 'C1', expectedOutcome: 'O1' },
+          { id: 'BR-2', description: 'Rule 2', condition: 'C2', expectedOutcome: 'O2' },
+          { id: 'BR-3', description: 'Rule 3', condition: 'C3', expectedOutcome: 'O3' },
+          { id: 'BR-4', description: 'Rule 4', condition: 'C4', expectedOutcome: 'O4' },
+          { id: 'BR-5', description: 'Rule 5', condition: 'C5', expectedOutcome: 'O5' },
+        ],
+        actors: [
+          { name: 'Admin', description: 'A1' },
+          { name: 'User', description: 'A2' },
+          { name: 'Guest', description: 'A3' },
+        ],
+        domains: ['security', 'performance'],
+        boundaryRules: [],
+        securityChecklists: [],
+      };
+
+      const candidates: QuestionCandidate[] = [
+        {
+          id: 'CAND-1',
+          conversationId: 'c1',
+          text: 'Is concurrent booking rate expected to support payment transactions?',
+          type: 'clarification',
+          category: 'logic',
+          impact: 'blocking-test-strategy',
+          priority: 'high',
+          skipRisk: 'None',
+          rationale: 'R1'
+        },
+        {
+          id: 'CAND-2',
+          conversationId: 'c1',
+          text: 'Minor typo in comment line',
+          type: 'clarification',
+          category: 'grammar',
+          impact: 'none',
+          priority: 'low',
+          skipRisk: 'None',
+          rationale: 'R2'
+        }
+      ];
+
+      const result = engine.analyze(requirement, intelligence, candidates);
+      expect(result.complexity).toBe('medium');
+      expect(result.riskLevel).toBe('high');
+      expect(result.strategy).toBe('Comprehensive QA');
+      expect(result.playbookName).toBe('Banking & Payments');
+      expect(result.questionsAskedCount).toBe(1); // CAND-1 is material
+      expect(result.questionsSkippedCount).toBe(1); // CAND-2 is non-material
+      expect(result.isReady).toBe(false); // question outstanding
+      expect(result.explainability.complexityReason).toContain('Complexity evaluated as MEDIUM');
+      expect(result.explainability.riskReason).toContain('Risk Level scored HIGH');
+      expect(result.explainability.questionReason).toContain('Retained 1 material questions');
     });
   });
 });

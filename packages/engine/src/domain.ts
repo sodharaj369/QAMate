@@ -257,6 +257,7 @@ export interface Conversation {
    */
   questions: Question[];
   answers: Answer[];
+  testCases?: TestCase[];
 
   createdAt: Date;
   updatedAt: Date;

@@ -27,5 +27,8 @@
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.0.0",
     "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "openai": "^6.45.0"
   }
 }

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Requirement, RequirementIntelligenceReport, ArtifactPlan, ProjectProfile, TestStrategy } from '../src/domain.js';
 import { GeneratorContext, ProjectConfig, GenerationPreferences } from '../src/types.js';
 import { DefaultContextCompiler } from '../src/context/index.js';
-import { DefaultArtifactGenerator, MockLLMProvider, TestCasesFactory } from '../src/artifacts/index.js';
+import { DefaultArtifactGenerator, MockLLMProvider, TestCasesFactory, TestCaseParser } from '../src/artifacts/index.js';
 
 const mockProjectConfig: ProjectConfig = {
   targetLanguage: 'TypeScript',
@@ -192,5 +192,40 @@ test('should verify access', async () => {});
 
     expect(content).toContain('Security Vulnerability Checklist');
     expect(content).toContain('Accessibility & UX Compliance');
+  });
+
+  it('should parse markdown test cases into structured TestCase aggregates', () => {
+    const md = `
+### Manual Test Cases
+
+#### TC-POS-1: Verify successful login
+- **Preconditions**:
+  1. User is registered
+- **Actions**:
+  1. Fill credentials and submit
+- **Expected Outcome**:
+  - Redirected to dashboard
+
+#### TC-NEG-2: Verify invalid credentials
+- **Preconditions**:
+  1. No credentials
+- **Actions**:
+  1. Click submit
+- **Expected Outcome**:
+  - Display error validation
+    `;
+
+    const cases = TestCaseParser.parseMarkdown(md, 'req-1', 'conv-1');
+    expect(cases.length).toBe(2);
+    expect(cases[0].id).toBe('TC-POS-1');
+    expect(cases[0].title).toBe('Verify successful login');
+    expect(cases[0].preconditions[0]).toBe('User is registered');
+    expect(cases[0].steps[0].action).toBe('Fill credentials and submit');
+    expect(cases[0].steps[0].expectedResult).toBe('Redirected to dashboard');
+    expect(cases[0].priority).toBe('P1');
+
+    expect(cases[1].id).toBe('TC-NEG-2');
+    expect(cases[1].title).toBe('Verify invalid credentials');
+    expect(cases[1].priority).toBe('P1');
   });
 });

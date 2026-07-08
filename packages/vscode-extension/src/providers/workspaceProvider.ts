@@ -8,6 +8,7 @@ import {
   Requirement,
   LLMProviderFactory,
   ILLMProvider,
+  DefaultDocumentExtractor,
 } from '@qamate/engine';
 import { Theme } from '../ui/Theme.js';
 import { VSCodeLMProvider } from './vscodeLMProvider.js';
@@ -26,10 +27,12 @@ import { renderWelcomePage } from '../ui/pages/WelcomePage.js';
 import { renderSettingsPage } from '../ui/pages/SettingsPage.js';
 import { renderSessionsPage } from '../ui/pages/SessionsPage.js';
 import { renderHelpPage } from '../ui/pages/HelpPage.js';
+import { AppState, AppStateData } from '../ui/AppState.js';
 
 export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'qamate.sidebarView';
   private _view?: vscode.WebviewView;
+  private appState: AppState;
 
   private state: WorkspaceState = {
     currentStep: 'NoSession',
@@ -56,6 +59,61 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
   ) {
     this.state.devModeEnabled =
       this.context.workspaceState.get<boolean>('qamateDevModeEnabled') || false;
+
+    this.appState = new AppState({
+      currentStep: 'NoSession',
+      timelineEvents: [],
+      devModeEnabled: this.state.devModeEnabled,
+      activeTab: 'home',
+      selectedPersona: 'manual-qa',
+      selectedAIProvider: 'mock',
+      selectedAIModel: '',
+      selectedAIEndpoint: '',
+      adoOrg: '',
+      adoProject: '',
+      jiraDomain: '',
+      jiraEmail: '',
+      hasOpenAIKey: false,
+      hasClaudeKey: false,
+      hasGeminiKey: false,
+      aiStatus: 'Offline Analysis: Ready',
+      adoStatus: 'Disconnected',
+      jiraStatus: 'Disconnected',
+      adoConnected: false,
+      jiraConnected: false,
+      detectedFileName: '',
+      sessionsCount: 0,
+      vsCodeLMAvailable: false,
+      lmModelName: '',
+    });
+
+    this.appState.subscribe(async (stateData) => {
+      this.state.currentStep = stateData.currentStep;
+      this.state.activeSessionId = stateData.activeSessionId;
+      this.state.timelineEvents = stateData.timelineEvents;
+      this.state.devModeEnabled = stateData.devModeEnabled;
+      this.state.activeTab = stateData.activeTab;
+      this.detectedFileName = stateData.detectedFileName;
+
+      if (this._view) {
+        this._view.webview.html = await this.getHtmlContent();
+      }
+    });
+
+    // Watch for VS Code configuration updates or theme changes to synchronize AppState
+    if (vscode.workspace && typeof vscode.workspace.onDidChangeConfiguration === 'function') {
+      vscode.workspace.onDidChangeConfiguration(async (e) => {
+        if (e.affectsConfiguration('qamate') || e.affectsConfiguration('workbench.colorTheme')) {
+          await this.syncAppState();
+        }
+      });
+    }
+
+    if (vscode.window && typeof vscode.window.onDidChangeActiveColorTheme === 'function') {
+      vscode.window.onDidChangeActiveColorTheme(async () => {
+        await this.syncAppState();
+      });
+    }
   }
 
   public resolveWebviewView(
@@ -70,9 +128,7 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
       localResourceRoots: [this.extensionUri],
     };
 
-    this.getHtmlContent().then((html) => {
-      webviewView.webview.html = html;
-    });
+    this.syncAppState();
 
     webviewView.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
@@ -133,6 +189,12 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
               art.content = message.content;
               await this.storage.saveConversation(this.currentConversation);
             }
+          }
+          break;
+        case 'updateTestCases':
+          if (this.currentConversation) {
+            this.currentConversation.testCases = message.testCases;
+            await this.storage.saveConversation(this.currentConversation);
           }
           break;
         case 'downloadReport':
@@ -335,35 +397,13 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
     this.updateView();
   }
 
-  private extractTextFromFile(filePath: string): string {
-    const ext = path.extname(filePath).toLowerCase();
+  private async extractTextFromFile(filePath: string): Promise<string> {
+    const extractor = new DefaultDocumentExtractor();
     try {
-      if (ext === '.md' || ext === '.txt' || ext === '.json' || ext === '.feature') {
-        return fs.readFileSync(filePath, 'utf-8');
-      }
-      if (ext === '.pdf') {
-        const buffer = fs.readFileSync(filePath);
-        const content = buffer.toString('utf-8');
-        const textParts = content.match(/\(([^)]+)\)/g);
-        if (textParts && textParts.length > 5) {
-          return textParts.map((t) => t.slice(1, -1)).join(' ');
-        }
-        return `[PDF Specification Content]\n${content.replace(/[^\x20-\x7E\s]/g, '').slice(0, 1500)}`;
-      }
-      if (ext === '.docx') {
-        const buffer = fs.readFileSync(filePath);
-        const content = buffer.toString('utf-8');
-        const cleanContent = content.replace(/[^\x20-\x7E\s]/g, ' ');
-        const matches = cleanContent.match(/[a-zA-Z\s]{10,}/g);
-        if (matches && matches.length > 10) {
-          return `[Word Document Specification Content]\n${matches.join(' ')}`;
-        }
-        return `[Word Specification Content]\n${cleanContent.slice(0, 1000)}`;
-      }
+      return await extractor.extractText(filePath);
     } catch (err: any) {
       return `[Error loading content from file: ${path.basename(filePath)}]: ${err.message}`;
     }
-    return '';
   }
 
   public async runActiveAnalysis(doc: vscode.TextDocument) {
@@ -378,7 +418,7 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
     try {
       const ext = path.extname(doc.fileName);
       const content =
-        doc.uri.scheme === 'file' ? this.extractTextFromFile(doc.uri.fsPath) : doc.getText();
+        doc.uri.scheme === 'file' ? await this.extractTextFromFile(doc.uri.fsPath) : doc.getText();
 
       const requirement: Requirement = {
         id: `req-${path.basename(doc.fileName, ext)}`,
@@ -416,10 +456,14 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
 
       this.state.activeSessionId = conversation.id;
       this.currentConversation = conversation;
-      this.state.currentStep = 'Understand';
+      if (conversation.status === 'ready-for-generation') {
+        this.state.currentStep = 'Plan';
+      } else {
+        this.state.currentStep = 'Understand';
+      }
       this.state.timelineEvents = ['Requirement Imported', 'Analysis Scorecard Compiled'];
       this.context.workspaceState.update('qamateActiveSessionId', conversation.id);
-      this.context.workspaceState.update('qamateActiveStep', 'Understand');
+      this.context.workspaceState.update('qamateActiveStep', this.state.currentStep);
       this.context.workspaceState.update('qamateTimelineEvents', this.state.timelineEvents);
     } catch (err: unknown) {
       this.analysisError = err instanceof Error ? err.message : 'Fatal analysis pipeline crash.';
@@ -518,10 +562,14 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
 
       this.state.activeSessionId = conversation.id;
       this.currentConversation = conversation;
-      this.state.currentStep = 'Understand';
+      if (conversation.status === 'ready-for-generation') {
+        this.state.currentStep = 'Plan';
+      } else {
+        this.state.currentStep = 'Understand';
+      }
       this.state.timelineEvents = ['Requirement Imported', 'Analysis Scorecard Compiled'];
       this.context.workspaceState.update('qamateActiveSessionId', conversation.id);
-      this.context.workspaceState.update('qamateActiveStep', 'Understand');
+      this.context.workspaceState.update('qamateActiveStep', this.state.currentStep);
       this.context.workspaceState.update('qamateTimelineEvents', this.state.timelineEvents);
       await this.refreshRecentSessionsList();
     } catch (err: unknown) {
@@ -860,10 +908,14 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
     if (conv) {
       this.state.activeSessionId = sessionId;
       this.currentConversation = conv;
-      this.state.currentStep = 'Understand';
+      if (conv.status === 'ready-for-generation' || conv.status === 'reviewing') {
+        this.state.currentStep = 'Plan';
+      } else {
+        this.state.currentStep = 'Understand';
+      }
       this.state.timelineEvents = ['Session loaded'];
       this.context.workspaceState.update('qamateActiveSessionId', sessionId);
-      this.context.workspaceState.update('qamateActiveStep', 'Understand');
+      this.context.workspaceState.update('qamateActiveStep', this.state.currentStep);
       this.context.workspaceState.update('qamateTimelineEvents', this.state.timelineEvents);
       this.updateView();
     }
@@ -1316,34 +1368,7 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async updateView() {
-    if (this._view) {
-      this._view.webview.html = await this.getHtmlContent();
-    }
-  }
-
-  private async getHtmlContent(): Promise<string> {
-    const activeTab = this.state.activeTab || 'home';
-    const stages: StageData[] = [];
-
-    // Helper: Determine stage status
-    const getStageStatus = (stepName: WorkspaceStep): 'locked' | 'active' | 'completed' => {
-      const order: WorkspaceStep[] = [
-        'Understand',
-        'Prepare',
-        'Plan',
-        'Generate',
-        'Review',
-        'Deliver',
-      ];
-      const targetIndex = order.indexOf(stepName);
-      const currentIndex = order.indexOf(this.state.currentStep);
-
-      if (targetIndex < currentIndex) return 'completed';
-      if (targetIndex === currentIndex) return 'active';
-      return 'locked';
-    };
-
+  private async syncAppState() {
     const selectedPersona =
       this.context.workspaceState.get<string>('qamateActivePersona') || 'manual-qa';
     const selectedAIProvider =
@@ -1357,26 +1382,26 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
     const jiraDomain = this.context.workspaceState.get<string>('qamate.jira.domain') || '';
     const jiraEmail = this.context.workspaceState.get<string>('qamate.jira.email') || '';
 
-    const hasOpenAIKey = !!(await this.context.secrets.get('qamate.openai.key'));
-    const hasClaudeKey = !!(await this.context.secrets.get('qamate.claude.key'));
-    const hasGeminiKey = !!(await this.context.secrets.get('qamate.gemini.key'));
+    const hasOpenAIKey = this.context.secrets ? !!(await this.context.secrets.get('qamate.openai.key')) : false;
+    const hasClaudeKey = this.context.secrets ? !!(await this.context.secrets.get('qamate.claude.key')) : false;
+    const hasGeminiKey = this.context.secrets ? !!(await this.context.secrets.get('qamate.gemini.key')) : false;
+
+    const hasAdoPat = this.context.secrets ? !!(await this.context.secrets.get('qamate.ado.pat')) : false;
+    const hasJiraToken = this.context.secrets ? !!(await this.context.secrets.get('qamate.jira.token')) : false;
+
+    const adoConnected = !!(adoOrg && adoProject && hasAdoPat);
+    const jiraConnected = !!(jiraDomain && jiraEmail && hasJiraToken);
 
     let hasAIKey = false;
     if (selectedAIProvider === 'openai') hasAIKey = hasOpenAIKey;
     else if (selectedAIProvider === 'claude') hasAIKey = hasClaudeKey;
     else if (selectedAIProvider === 'gemini') hasAIKey = hasGeminiKey;
 
-    const hasAdoPat = !!(await this.context.secrets.get('qamate.ado.pat'));
-    const hasJiraToken = !!(await this.context.secrets.get('qamate.jira.token'));
-
-    const adoConnected = !!(adoOrg && adoProject && hasAdoPat);
-    const jiraConnected = !!(jiraDomain && jiraEmail && hasJiraToken);
-
     let aiStatus = 'Offline Analysis: Ready';
     let vsCodeLMAvailable = false;
     let lmModelName = '';
 
-    if ((vscode as any).lm) {
+    if ('lm' in vscode) {
       try {
         const models = await (vscode as any).lm.selectChatModels({});
         if (models && models.length > 0) {
@@ -1407,14 +1432,104 @@ export class QAMateSidebarProvider implements vscode.WebviewViewProvider {
       aiStatus = `${selectedAIProvider.toUpperCase()} (${selectedAIModel || 'default'}) • ${activeState}`;
     }
 
+    const sessions = await this.engine.listSessions();
+    const sessionsCount = sessions.length;
+
+    this.appState.update({
+      currentStep: this.state.currentStep,
+      activeSessionId: this.state.activeSessionId,
+      timelineEvents: this.state.timelineEvents,
+      devModeEnabled: this.state.devModeEnabled,
+      activeTab: this.state.activeTab || 'home',
+      selectedPersona,
+      selectedAIProvider,
+      selectedAIModel,
+      selectedAIEndpoint,
+      adoOrg,
+      adoProject,
+      jiraDomain,
+      jiraEmail,
+      hasOpenAIKey,
+      hasClaudeKey,
+      hasGeminiKey,
+      adoConnected,
+      jiraConnected,
+      adoStatus: adoConnected ? 'Connected' : 'Disconnected',
+      jiraStatus: jiraConnected ? 'Connected' : 'Disconnected',
+      aiStatus,
+      sessionsCount,
+      detectedFileName: this.detectedFileName,
+      vsCodeLMAvailable,
+      lmModelName,
+    });
+  }
+
+  private async updateView() {
+    await this.syncAppState();
+  }
+
+  private async getHtmlContent(): Promise<string> {
+    const activeTab = this.state.activeTab || 'home';
+    const stages: StageData[] = [];
+
+    // Helper: Determine stage status
+    const getStageStatus = (stepName: WorkspaceStep): 'locked' | 'active' | 'completed' => {
+      const order: WorkspaceStep[] = [
+        'Understand',
+        'Prepare',
+        'Plan',
+        'Generate',
+        'Review',
+        'Deliver',
+      ];
+      const targetIndex = order.indexOf(stepName);
+      const currentIndex = order.indexOf(this.state.currentStep);
+
+      if (targetIndex < currentIndex) return 'completed';
+      if (targetIndex === currentIndex) return 'active';
+      return 'locked';
+    };
+
+    const state = this.appState.get();
+    const selectedPersona = state.selectedPersona;
+    const selectedAIProvider = state.selectedAIProvider;
+    const selectedAIModel = state.selectedAIModel;
+    const selectedAIEndpoint = state.selectedAIEndpoint;
+
+    const adoOrg = state.adoOrg;
+    const adoProject = state.adoProject;
+
+    const jiraDomain = state.jiraDomain;
+    const jiraEmail = state.jiraEmail;
+
+    const hasOpenAIKey = state.hasOpenAIKey;
+    const hasClaudeKey = state.hasClaudeKey;
+    const hasGeminiKey = state.hasGeminiKey;
+    const vsCodeLMAvailable = state.vsCodeLMAvailable;
+    const lmModelName = state.lmModelName;
+
+    const hasAdoPat = this.context.secrets ? !!(await this.context.secrets.get('qamate.ado.pat')) : false;
+    const hasJiraToken = this.context.secrets ? !!(await this.context.secrets.get('qamate.jira.token')) : false;
+
+    const adoConnected = state.adoConnected;
+    const jiraConnected = state.jiraConnected;
+
+    const hasAIKey = selectedAIProvider === 'openai' ? hasOpenAIKey :
+                     selectedAIProvider === 'claude' ? hasClaudeKey :
+                     selectedAIProvider === 'gemini' ? hasGeminiKey : false;
+
+    const aiStatus = state.aiStatus;
+
     const aiResult = this.context.workspaceState.get<{
       providerName: string;
+      modelName?: string;
       requestSent: boolean;
       responseReceived: boolean;
       enhancementApplied: boolean;
       errorMessage?: string;
     }>('qamateActiveAIResult') || {
       providerName: selectedAIProvider === 'mock' ? 'None' : selectedAIProvider,
+      modelName: '',
       requestSent: false,
       responseReceived: false,
       enhancementApplied: false,

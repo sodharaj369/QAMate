@@ -13,3 +13,15 @@ export * from './providers/index.js';
 export * from './storage/index.js';
 export * from './integrations/index.js';
 export * from './platform/index.js';
+export * from './rule-validation/docxParser.js';
+export * from './rule-validation/pdfParser.js';
+export * from './rule-validation/documentExtractor.js';
+export * from './provider-hub/orchestrator.js';
+export * from './provider-hub/providerFactory.js';
+export * from './analytics/tokenAnalytics.js';
+export * from './decision-engine/qaDecisionEngine.js';
+export * from './decision-engine/confidenceEngine.js';
+export * from './decision-engine/materialClarification.js';
+export * from './decision-engine/strategySelector.js';
+export * from './artifacts/testCaseParser.js';
+

@@ -8,6 +8,7 @@ import {
   QuestionCandidate,
   Question,
 } from '../domain.js';
+import { TestCaseParser } from '../artifacts/testCaseParser.js';
 import { IConversationStorage, ILLMProvider } from '../interfaces/index.js';
 import {
   DefaultRequirementValidator,
@@ -61,7 +62,8 @@ export class QAMateEngine {
     let candidates: QuestionCandidate[] = [];
     let activeQuestions: Question[] = [];
 
-    if (provider) {
+    // Decision Ladder: skip AI clarification if static score recommendation is 'generate-direct'
+    if (provider && analysisResult.confidence.recommendation !== 'generate-direct') {
       const prompt = `You are a Senior Principal QA Engineer. Review the following software requirement specification and the static rule-based analysis findings to assess QA readiness.
 
 Requirement:
@@ -370,7 +372,18 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
     const provider = customProvider || new MockLLMProvider();
     const artifacts = await generator.generateArtifacts(context, plan, provider);
 
-    (conv as any).generatedArtifacts = artifacts;
+     (conv as any).generatedArtifacts = artifacts;
+
+    // Parse structured test cases from artifacts
+    const testCases: any[] = [];
+    for (const art of artifacts) {
+      if (art.type.includes('Test Cases') || art.type.includes('Test Skeletons')) {
+        const parsed = TestCaseParser.parseMarkdown(art.content, conv.requirementId, conv.id);
+        testCases.push(...parsed);
+      }
+    }
+    conv.testCases = testCases;
+
     conv.status = 'reviewing';
     conv.updatedAt = new Date();
 
