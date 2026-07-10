@@ -1,3 +1,4 @@
+import { SystemModel, QAMentalModel } from '../platform/reasoningModel.js';
 import {
   Requirement,
   RequirementIntelligenceReport,
@@ -17,6 +18,32 @@ import {
   KnowledgeQuery,
   KnowledgeResult,
   CoverageReport,
+  WorkspaceProfile,
+  ProjectDNA,
+  SystemModelDTO,
+  TestStrategyDTO,
+  ValidationResult,
+  ProviderResponse,
+  AIObservation,
+  ProviderCapabilities,
+  Assumption,
+  AssumptionDecision,
+  HumanFeedback,
+  CommunicationConfidence,
+  ReasoningSession,
+  OperationContract,
+  OperationContracts,
+  QARecommendation,
+  DecisionRecord,
+  ComplianceIssue,
+  ChangeImpactReport,
+  QAValueReport,
+  TraceLink,
+  DeliverableBundle,
+  WorkspaceHealthMetrics,
+  ExportReadiness,
+  DeliverableManifest,
+  ExportProfileType,
 } from '../domain.js';
 import {
   GeneratorContext,
@@ -98,10 +125,11 @@ export interface IClarificationEngine {
   planClarifications(
     requirement: Requirement,
     intelligence: RequirementIntelligenceReport,
-    options?: { askOnlyBlocking?: boolean },
+    options?: { askOnlyBlocking?: boolean; provider?: any; skipDecisionEngine?: boolean },
   ): Promise<{
     candidates: QuestionCandidate[];
     activeQuestions: Question[];
+    telemetry?: any;
   }>;
 }
 
@@ -299,7 +327,7 @@ export interface IADOPersistenceAdapter {
     org: string,
     project: string,
     pat: string,
-  ): Promise<void>;
+  ): Promise<any>;
 }
 
 /**
@@ -315,7 +343,7 @@ export interface IJiraPersistenceAdapter {
     domain: string,
     email: string,
     token: string,
-  ): Promise<void>;
+  ): Promise<any>;
 }
 
 /**
@@ -329,3 +357,128 @@ export interface IStorageProvider {
   save(key: string, data: unknown): Promise<void>;
   load(key: string): Promise<unknown>;
 }
+
+export interface ScanResult<T = any> {
+  readonly source: string;
+  readonly confidence: number;
+  readonly evidence: string[];
+  readonly warnings: string[];
+  readonly data: T;
+}
+
+export interface IScanner {
+  readonly name: string;
+  scan(projectRoot: string): Promise<ScanResult>;
+}
+
+export interface IWorkspaceIntelligenceEngine {
+  analyze(projectRoot: string): Promise<WorkspaceProfile>;
+}
+
+export interface IProjectDNAStore {
+  load(projectRoot: string): Promise<ProjectDNA>;
+  save(projectRoot: string, dna: ProjectDNA): Promise<void>;
+}
+
+export interface ISchemaValidator {
+  validateSystemModel(raw: unknown): ValidationResult<SystemModelDTO>;
+  validateTestStrategy(raw: unknown): ValidationResult<TestStrategyDTO>;
+}
+
+export interface IResponseRepairer {
+  repair(rawText: string, expectedType: 'SystemModel' | 'TestStrategy'): string;
+}
+
+export interface IProviderAdapter {
+  readonly capabilities: ProviderCapabilities;
+  formatPrompt(template: string, variables: Record<string, string>): string;
+  parseResponse<T>(responseContent: string): T;
+}
+
+export interface IMultiLevelCache {
+  lookupStatic(prompt: string): string | undefined;
+  saveStatic(prompt: string, val: string): void;
+  lookupConversation(prompt: string): string | undefined;
+  saveConversation(prompt: string, val: string): void;
+  lookupProvider(prompt: string): string | undefined;
+  saveProvider(prompt: string, val: string): void;
+  clearAll(): void;
+}
+
+export interface IHumanFeedbackStore {
+  addFeedback(feedback: Omit<HumanFeedback, 'id' | 'timestamp'>): Promise<HumanFeedback>;
+  getFeedbackForTarget(targetId: string): Promise<HumanFeedback[]>;
+  getAllFeedback(): Promise<HumanFeedback[]>;
+}
+
+export interface IAssumptionVerificationGate {
+  loadAssumptions(assumptions: Assumption[]): void;
+  confirmAssumption(id: string, user: string, comment?: string): void;
+  rejectAssumption(id: string, user: string, comment?: string): void;
+  addManualAssumption(statement: string, user: string, reason?: string): void;
+  getAssumptions(): Assumption[];
+}
+
+export interface IRecommendationEngine {
+  generateRecommendations(
+    systemModel: any,
+    mentalModel: any,
+    projectDNA: any
+  ): Promise<QARecommendation[]>;
+}
+
+export interface IRecommendationValidator {
+  validate(recommendations: QARecommendation[], systemModel: any): QARecommendation[];
+}
+
+export interface IRecommendationApplier {
+  applyRecommendation(
+    strategy: TestStrategy,
+    rec: QARecommendation,
+    user: string,
+    comment?: string
+  ): TestStrategy;
+}
+
+export interface IQualityAttributeAudit {
+  auditStrategy(strategy: TestStrategy, dna: ProjectDNA): ComplianceIssue[];
+}
+
+export interface ITraceabilityEngine {
+  buildTraceability(
+    requirementId: string,
+    systemModel: SystemModel,
+    strategy: TestStrategy,
+    recs: QARecommendation[]
+  ): TraceLink;
+}
+
+export interface IChangeIntelligence {
+  detectChangeImpact(
+    oldSystem: SystemModel,
+    newSystem: SystemModel,
+    oldMental: QAMentalModel,
+    newMental: QAMentalModel,
+    oldStrategy: TestStrategy,
+    newStrategy: TestStrategy
+  ): ChangeImpactReport;
+}
+
+export interface IQAValueEngine {
+  optimizeScenarios(scenarios: any[]): { optimized: any[]; report: QAValueReport };
+}
+
+export interface IExporter {
+  export(bundle: DeliverableBundle, profile?: ExportProfileType): Promise<any>;
+}
+
+export interface IDeliverableCompiler {
+  compile(
+    strategy: TestStrategy,
+    testCases: TestCase[],
+    manifest: DeliverableManifest,
+    metrics: WorkspaceHealthMetrics
+  ): DeliverableBundle;
+}
+
+

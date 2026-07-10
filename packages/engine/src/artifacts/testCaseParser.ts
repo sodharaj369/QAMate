@@ -1,4 +1,4 @@
-import { TestCase, TestStep } from '../domain.js';
+import { TestCase } from '../domain.js';
 
 export class TestCaseParser {
   public static parseMarkdown(markdown: string, requirementId: string, conversationId: string): TestCase[] {

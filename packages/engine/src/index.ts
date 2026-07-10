@@ -24,4 +24,4 @@ export * from './decision-engine/confidenceEngine.js';
 export * from './decision-engine/materialClarification.js';
 export * from './decision-engine/strategySelector.js';
 export * from './artifacts/testCaseParser.js';
-
+export * from './token-optimizer/index.js';

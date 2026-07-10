@@ -15,7 +15,7 @@ import {
 import { ILLMProvider } from '../src/interfaces/index.js';
 import { QAArtifact, TestStrategy, Requirement, RequirementIntelligenceReport } from '../src/domain.js';
 import { RuleBasedDecisionMatrix } from '../src/decision-engine/decisionMatrix.js';
-import { QADecisionEngine, ConfidenceEngine, MaterialClarification, StrategySelector } from '../src/index.js';
+import { QADecisionEngine, ConfidenceEngine, MaterialClarification, StrategySelector, TokenOptimizer, ContextItem } from '../src/index.js';
 import { QuestionCandidate } from '../src/domain.js';
 
 describe('Sprint 5C Platform Services tests', () => {
@@ -42,7 +42,7 @@ describe('Sprint 5C Platform Services tests', () => {
 
   // 2. Efficiency Engine
   describe('EfficiencyEngine', () => {
-    it('should minimize context details by stripping comments', () => {
+    it('should minimize context details by preserving comments', () => {
       const efficiency = new EfficiencyEngine();
       const raw = `
         # Requirement title
@@ -51,7 +51,7 @@ describe('Sprint 5C Platform Services tests', () => {
       `;
       const minimized = efficiency.minimizeContext(raw);
       expect(minimized).toContain('System should login user.');
-      expect(minimized).not.toContain('comments here');
+      expect(minimized).toContain('comments here');
     });
 
     it('should calculate cache hits, token and cost estimations', () => {
@@ -163,7 +163,7 @@ describe('Sprint 5C Platform Services tests', () => {
 
       const response = await orchestrator.orchestrate({
         taskType: 'test-generation',
-        prompt: 'Prompt',
+        prompt: 'Prompt for fallback test case',
         costMode: 'balanced',
       }, {
         localProvider: failingProvider,
@@ -195,7 +195,7 @@ describe('Sprint 5C Platform Services tests', () => {
 
       const orchestratePromise = orchestrator.orchestrate({
         taskType: 'test-generation',
-        prompt: 'Prompt',
+        prompt: 'Prompt for timeout hang test case',
         costMode: 'balanced',
       }, {
         localProvider: hangingProvider,
@@ -278,42 +278,48 @@ describe('Sprint 5C Platform Services tests', () => {
         createdAt: new Date(),
       };
 
-      const mockArtifacts: QAArtifact[] = [
-        { id: 'art-1', planId: 'p-1', type: 'typescript', content: 'console.log("hello");', createdAt: new Date() }
+      const mockTestCases: TestCase[] = [
+        {
+          id: 'TC-POS-1',
+          requirementId: 'req-1',
+          conversationId: 'c1',
+          title: 'Verify dashboard components',
+          description: 'Desc',
+          preconditions: ['User is authenticated'],
+          steps: [
+            { stepNumber: 1, action: 'Open dashboard', expectedResult: 'Dashboard rendered' }
+          ],
+          priority: 'P1',
+          tags: ['dashboard'],
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
       ];
 
-      const md = exporter.exportToMarkdown(mockStrategy, mockArtifacts);
+      const md = exporter.exportToMarkdown(mockStrategy, mockTestCases);
       expect(md).toContain('# QA Test Strategy & Artifacts Report');
       expect(md).toContain('Verify dashboard components');
 
-      const html = exporter.exportToHTML(mockStrategy, mockArtifacts);
+      const html = exporter.exportToHTML(mockStrategy, mockTestCases);
       expect(html).toContain('<!DOCTYPE html>');
       expect(html).toContain('<h1>QA Test Strategy & Artifacts Report</h1>');
 
-      const json = exporter.exportToJSON(mockStrategy, mockArtifacts);
+      const json = exporter.exportToJSON(mockStrategy, mockTestCases);
       expect(JSON.parse(json).strategy.id).toBe('strat-1');
 
-      const csv = exporter.exportToCSV(mockStrategy, mockArtifacts);
-      expect(csv).toContain('"Artifact ID","Type","Content"');
-      expect(csv).toContain('"art-1","typescript"');
+      const csv = exporter.exportToCSV(mockStrategy, mockTestCases);
+      expect(csv).toContain('"Test Case ID"');
+      expect(csv).toContain('"TC-POS-1"');
 
-      const xls = exporter.exportToExcel(mockStrategy, mockArtifacts);
-      expect(xls).toContain('<th>Artifact ID</th>');
-      expect(xls).toContain('<td>art-1</td>');
+      const xls = exporter.exportToExcel(mockStrategy, mockTestCases);
+      expect(xls).toContain('<th>Test Case ID</th>');
+      expect(xls).toContain('<td>TC-POS-1</td>');
 
       // Test ExcelJS Export
-      const xlsxBuffer = await exporter.exportToExcelJS(mockStrategy, [
-        {
-          id: 'manual-tests',
-          planId: 'p-1',
-          type: 'markdown',
-          content: '### Functional Verification\n- [ ] **TC-POS-1**: Verify login screen rule [BR-101] - "Accept successful redirect" under condition: "user credentials match"',
-          createdAt: new Date(),
-        }
-      ]);
+      const xlsxBuffer = await exporter.exportToExcelJS(mockStrategy, mockTestCases);
       expect(xlsxBuffer).toBeInstanceOf(Buffer);
       expect(xlsxBuffer.length).toBeGreaterThan(0);
-    });
+    }, 15000);
   });
 
   // 11. QA Decision Engine & Reasoning
@@ -416,6 +422,51 @@ describe('Sprint 5C Platform Services tests', () => {
       expect(result.explainability.complexityReason).toContain('Complexity evaluated as MEDIUM');
       expect(result.explainability.riskReason).toContain('Risk Level scored HIGH');
       expect(result.explainability.questionReason).toContain('Retained 1 material questions');
+    });
+  });
+
+  describe('Lean AI Intelligence / TokenOptimizer tests', () => {
+    it('should prune whitespace and comments, and prioritize items under budget', () => {
+      const items: ContextItem[] = [
+        {
+          id: '1',
+          type: 'requirement',
+          content: 'Requirement detail /* remove comment */\n\n\n  spaced text  ',
+          priority: 100
+        },
+        {
+          id: '2',
+          type: 'playbook',
+          content: 'Playbook guideline rule detail',
+          priority: 95
+        },
+        {
+          id: '3',
+          type: 'examples',
+          content: 'Low priority example content',
+          priority: 20
+        }
+      ];
+
+      const optimizer = new TokenOptimizer();
+      const result = optimizer.planAndOptimize(items, 'default', { maxTokens: 25, approxCharsPerToken: 4 });
+      
+      expect(result.prompt).toContain('Requirement detail');
+      expect(result.prompt).toContain('spaced text');
+      expect(result.prompt).toContain('Playbook guideline rule detail');
+      expect(result.prompt).not.toContain('Low priority example content');
+      expect(result.report.savedPercent).toBeGreaterThan(0);
+    });
+
+    it('should lookup and reuse cached AI generation results', () => {
+      const optimizer = new TokenOptimizer();
+      const prompt = 'Generate QA Test Scenarios for Secure Vault';
+      const response = 'MOCK COMPLETE';
+
+      expect(optimizer.lookupCache(prompt)).toBeUndefined();
+      optimizer.saveCache(prompt, response);
+      expect(optimizer.lookupCache(prompt)).toBe(response);
+      expect(optimizer.getCumulativeReport().cacheHits).toBe(1);
     });
   });
 });

@@ -1,7 +1,18 @@
 import { Requirement, TestCase } from '../domain.js';
 import { IADOPersistenceAdapter } from '../interfaces/index.js';
+import { IIntegrationAdapter, SyncResult, IntegrationHealth } from './integrationAdapter.js';
 
-export class DefaultADOAdapter implements IADOPersistenceAdapter {
+export class DefaultADOAdapter implements IADOPersistenceAdapter, IIntegrationAdapter {
+  public readonly id = 'ado';
+  public readonly name = 'Azure DevOps Integration';
+
+  public async checkHealth(credentials: any): Promise<IntegrationHealth> {
+    if (!credentials || !credentials.pat || !credentials.org || !credentials.project) {
+      return { status: 'warning', message: 'Azure DevOps credentials pending setup.' };
+    }
+    return { status: 'healthy', message: `Connected to ADO Org: ${credentials.org} Project: ${credentials.project} successfully.` };
+  }
+
   public async importWorkItem(
     workItemId: string,
     org: string,
@@ -39,7 +50,6 @@ export class DefaultADOAdapter implements IADOPersistenceAdapter {
       data.fields['Microsoft.VSTS.Common.AcceptanceCriteria'] ||
       'No description details provided.';
 
-    // Clean html tags from ADO descriptions
     const cleanContent = rawContent.replace(/<[^>]*>/g, '').trim();
 
     return {
@@ -60,15 +70,29 @@ export class DefaultADOAdapter implements IADOPersistenceAdapter {
   public async exportTestCases(
     testCases: TestCase[],
     workItemId: string,
-    org: string,
-    project: string,
-    pat: string,
-  ): Promise<void> {
-    const authHeader = `Basic ${Buffer.from(`:${pat}`).toString('base64')}`;
-    const createUrl = `https://dev.azure.com/${org}/${project}/_apis/wit/workitems/$Test%20Case?api-version=7.1`;
+    orgOrCredentials: any,
+    project?: string,
+    pat?: string,
+  ): Promise<SyncResult> {
+    let org = '';
+    let proj = '';
+    let tokenPat = '';
 
-    // Retrieve parent work item details to link tests
-    const parentUrl = `https://dev.azure.com/${org}/${project}/_apis/wit/workitems/${workItemId}`;
+    if (typeof orgOrCredentials === 'object' && orgOrCredentials !== null) {
+      org = orgOrCredentials.org || '';
+      proj = orgOrCredentials.project || '';
+      tokenPat = orgOrCredentials.pat || '';
+    } else {
+      org = orgOrCredentials || '';
+      proj = project || '';
+      tokenPat = pat || '';
+    }
+
+    const authHeader = `Basic ${Buffer.from(`:${tokenPat}`).toString('base64')}`;
+    const createUrl = `https://dev.azure.com/${org}/${proj}/_apis/wit/workitems/$Test%20Case?api-version=7.1`;
+    const parentUrl = `https://dev.azure.com/${org}/${proj}/_apis/wit/workitems/${workItemId}`;
+
+    let lastRemoteId = '';
 
     for (const tc of testCases) {
       const stepsHtml = tc.steps
@@ -113,8 +137,21 @@ export class DefaultADOAdapter implements IADOPersistenceAdapter {
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(`ADO Export TestCase failed (${response.status}): ${errText}`);
+        return {
+          remoteId: '',
+          status: 'retry',
+          error: `ADO Export TestCase failed (${response.status}): ${errText}`
+        };
       }
+
+      const resData = await response.json() as any;
+      lastRemoteId = resData.id?.toString() || '';
     }
+
+    return {
+      remoteId: lastRemoteId || workItemId,
+      url: `https://dev.azure.com/${org}/${proj}/_workitems/edit/${workItemId}`,
+      status: 'completed'
+    };
   }
 }

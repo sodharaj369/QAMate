@@ -1,5 +1,6 @@
 import { Theme } from '../Theme.js';
 import { icons } from '../icons.js';
+import { renderStatusBar, renderBadge } from './Library.js';
 
 export interface StageData {
   id: string;
@@ -19,437 +20,718 @@ export function renderLayout(
   sessionStatus: string,
   sessionMetadata: string,
   promptPlaceholder: string,
-  activeTab: 'home' | 'sessions' | 'settings' | 'help' = 'home',
+  activeTab: any = 'dashboard',
 ): string {
-  // Global 4-Item Navigation Bar
-  const navigationBarHtml = `
-    <div class="global-nav-bar" style="display: flex; align-items: center; justify-content: space-around; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 8px; margin-bottom: 12px;">
-      <span class="nav-item ${activeTab === 'home' ? 'active' : ''}" onclick="postMessage({command: 'switchTab', tab: 'home'})" style="cursor: pointer; font-weight: ${activeTab === 'home' ? '700' : '500'}; color: ${activeTab === 'home' ? 'var(--vscode-button-background)' : 'var(--vscode-descriptionForeground)'}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;">${icons.home} Home</span>
-      <span class="nav-item ${activeTab === 'sessions' ? 'active' : ''}" onclick="postMessage({command: 'switchTab', tab: 'sessions'})" style="cursor: pointer; font-weight: ${activeTab === 'sessions' ? '700' : '500'}; color: ${activeTab === 'sessions' ? 'var(--vscode-button-background)' : 'var(--vscode-descriptionForeground)'}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;">${icons.history} Sessions</span>
-      <span class="nav-item ${activeTab === 'settings' ? 'active' : ''}" onclick="postMessage({command: 'switchTab', tab: 'settings'})" style="cursor: pointer; font-weight: ${activeTab === 'settings' ? '700' : '500'}; color: ${activeTab === 'settings' ? 'var(--vscode-button-background)' : 'var(--vscode-descriptionForeground)'}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;">${icons.gear} Settings</span>
-      <span class="nav-item ${activeTab === 'help' ? 'active' : ''}" onclick="postMessage({command: 'switchTab', tab: 'help'})" style="cursor: pointer; font-weight: ${activeTab === 'help' ? '700' : '500'}; color: ${activeTab === 'help' ? 'var(--vscode-button-background)' : 'var(--vscode-descriptionForeground)'}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;">${icons.help} Help</span>
-    </div>
-  `;
-
-  const isPreSession = sessionTitle === '' || sessionTitle === 'No Session Active';
-  const showSessionWidgets = activeTab === 'home' && !isPreSession;
-
-  // 1. Command Bar
-  const commandBarHtml = showSessionWidgets
-    ? `
-    <div class="command-bar" style="margin-bottom: 12px;">
-      <button class="cmd-btn" onclick="postMessage({command: 'analyzeActive'})">Analyze</button>
-      <button class="cmd-btn" onclick="postMessage({command: 'executeNext'})">Continue</button>
-      <button class="cmd-btn" onclick="postMessage({command: 'startNew'})">Reset</button>
-    </div>
-  `
-    : '';
-
-  // 2. Session Header
-  const sessionHeaderHtml = showSessionWidgets
-    ? `
-    <div class="session-header" style="margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--vscode-panel-border);">
-      <div class="session-title" style="font-size: 14px; font-weight: 600; color: var(--vscode-foreground);">${sessionTitle}</div>
-      <div class="session-status-row" style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
-        <span class="session-status-dot" style="color: var(--vscode-button-background); font-size: 8px;">●</span>
-        <span class="session-status-text" style="font-size: 10px; font-weight: 500; color: var(--vscode-foreground);">${sessionStatus}</span>
-        <span style="font-size: 10px; color: var(--vscode-descriptionForeground); margin-left: auto;">${sessionMetadata}</span>
-      </div>
-    </div>
-  `
-    : '';
-
-  // 3. Outcome Stepper Progress Header
-  const stepsList = [
-    { label: 'Understand', step: 'Understand' },
-    { label: 'Prepare', step: 'Prepare' },
-    { label: 'Plan', step: 'Plan' },
-    { label: 'Generate', step: 'Generate' },
-    { label: 'Review', step: 'Review' },
-    { label: 'Deliver', step: 'Deliver' },
+  // Map tab IDs to labels and icons/emojis
+  const sidebarTabs = [
+    { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
+    { id: 'requirement', label: 'Requirement', icon: '📄' },
+    { id: 'system', label: 'System Model', icon: '🏗' },
+    { id: 'mental', label: 'Mental Model', icon: '🧠' },
+    { id: 'strategy', label: 'Strategy', icon: '📋' },
+    { id: 'artifacts', label: 'Artifacts', icon: '🧪' },
+    { id: 'review', label: 'Review', icon: '✔' },
+    { id: 'deliver', label: 'Deliver', icon: '📦' },
+    { id: 'recommendations', label: 'Recommendations', icon: '💡' },
+    { id: 'sessions', label: 'Evolution', icon: '📚' },
+    { id: 'settings', label: 'Project DNA', icon: '🧬' },
+    { id: 'hub', label: 'AI Hub', icon: '🤖' },
   ];
 
+  // Resolve current active stage content
   const activeStage = stages.find((s) => s.status === 'active') || stages[0];
-  const activeIndex = stepsList.findIndex((s) => s.step === activeStage?.id);
+  const activeContentHtml = activeStage ? activeStage.contentHtml : '';
 
-  const progressStepsHtml = showSessionWidgets
-    ? `
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; font-size: 8px; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 8px; box-sizing: border-box; width: 100%;">
-      ${stepsList
-        .map((step, idx) => {
-          const isActive = idx === activeIndex;
-          const isPast = idx < activeIndex;
-          const color = isActive
-            ? 'var(--vscode-button-background)'
-            : isPast
-              ? 'var(--vscode-testing-iconPassedColor, #89D185)'
-              : 'var(--vscode-descriptionForeground)';
-          return `<span style="color: ${color}; opacity: ${isActive ? 1 : 0.8};">${step.label}</span>`;
-        })
-        .join(
-          '<span style="opacity: 0.4; color: var(--vscode-descriptionForeground); font-size: 6px;">➔</span>',
-        )}
-    </div>
-  `
-    : '';
+  // Breadcrumbs text
+  const breadcrumbProject = 'QAMate';
+  const breadcrumbSession = sessionTitle || 'No Session Active';
+  const breadcrumbActive = activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
 
-  // 4. Next Best Action recommendations
-  let nextBestActionText = '';
-  switch (activeStage?.id) {
-    case 'Understand':
-      nextBestActionText = 'Review health metrics, actors, and rules. Click "Continue" to prepare.';
-      break;
-    case 'Prepare':
-      nextBestActionText = 'Complete QA Readiness check or click "Skip" to view strategy.';
-      break;
-    case 'Plan':
-      nextBestActionText =
-        'Review Strategic parameters. Click "Approve Strategy" to generate test suite.';
-      break;
-    case 'Generate':
-      nextBestActionText =
-        'Generating test scenarios... Click "Continue" to open Results review workspace.';
-      break;
-    case 'Review':
-      nextBestActionText =
-        'Search, edit, and audit scenarios. Click "Proceed to Deliver" to export.';
-      break;
-    case 'Deliver':
-      nextBestActionText = 'Export approved deliverables or synchronize directly with ADO/Jira.';
-      break;
-    default:
-      nextBestActionText = 'Proceed to the next workflow outcome.';
-  }
-
-  // 5. Active center stage card
-  let activeCardHtml = '';
-  if (activeStage) {
-    const suggestionsHtml =
-      showSessionWidgets && activeStage.suggestedPrompts && activeStage.suggestedPrompts.length > 0
-        ? `
-      <div class="suggested-prompts-container" style="margin-top: ${Theme.spacing.sm}; border-top: 1px dotted var(--vscode-panel-border); padding-top: 6px;">
-        <span class="suggested-label" style="font-size: 10px; color: var(--vscode-descriptionForeground); display: block; margin-bottom: 4px;">Suggested prompts:</span>
-        <div class="suggested-pills" style="display: flex; flex-wrap: wrap; gap: 4px;">
-          ${activeStage.suggestedPrompts.map((p) => `<span class="suggested-pill" onclick="applySuggestedPrompt('${p.replace(/'/g, "\\'")}')" style="font-size: 10px; color: var(--vscode-textLink-foreground); cursor: pointer; padding: 2px 6px; background: var(--vscode-sideBarSectionHeader-background); border-radius: 2px; border: 1px solid var(--vscode-panel-border);">• ${p}</span>`).join('')}
-        </div>
-      </div>
-    `
-        : '';
-
-    activeCardHtml = `
-      <div class="stage-card" style="${showSessionWidgets ? 'border: 1px solid var(--vscode-button-background);' : ''} border-radius: 4px; overflow: hidden; background: var(--vscode-sideBarSectionHeader-background);">
-        ${
-          showSessionWidgets
-            ? `
-        <div class="stage-header" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; font-weight: 600; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--vscode-panel-border);">
-          <div style="display: flex; align-items: center; gap: ${Theme.spacing.sm};">
-            <span class="skeleton-pulse-dot">●</span>
-            <span class="stage-title-text">${activeStage.title}</span>
-          </div>
-          <span class="tag tag-warn" style="padding: 2px 6px; border-radius: 2px; font-size: 8px; font-weight: 700; background: var(--vscode-inputValidation-warningBackground, #E58E26); color: #FFF;">ACTIVE</span>
-        </div>
-        `
-            : ''
-        }
-        <div class="stage-body" style="padding: 10px; background: var(--vscode-sideBar-background);">
-          ${activeStage.contentHtml}
-          ${suggestionsHtml}
-        </div>
-      </div>
-    `;
-  }
-
-  // Next Best Action Docked Tray
-  const dockedPromptHtml = showSessionWidgets
-    ? `
-    <div class="docked-prompt-box">
-      <div style="font-size: 10px; color: var(--vscode-descriptionForeground); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; line-height: 1.3;">
-        <span style="color: var(--vscode-button-background); font-weight: bold;">➡️</span> 
-        <strong>Next action:</strong> <span id="nba-tracker-text">${nextBestActionText}</span>
-      </div>
-      <div class="prompt-input-container">
-        <input type="text" id="chat-prompt-input" placeholder="${promptPlaceholder}" onkeydown="handlePromptKey(event)" />
-        <button style="width: auto; padding: 4px 8px; background: var(--vscode-button-background); color: var(--vscode-button-foreground);" onclick="submitPromptQuery()">Send</button>
-      </div>
-    </div>
-  `
-    : '';
+  // Status Bar items configuration
+  const statusBarHtml = renderStatusBar([
+    { label: 'AI', value: isAnalyzing ? 'Analyzing...' : 'Claude', icon: '🟢' },
+    { label: 'DNA', value: 'Loaded', icon: '🟢' },
+    { label: 'Review', value: 'Passed', icon: '🟢' },
+    { label: 'Revision', value: 'v3' },
+    { label: 'Session', value: 'Saved', icon: '✓' }
+  ]);
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QAMate Workspace</title>
-    <style>
-        body {
-            font-family: var(--vscode-font-family, sans-serif);
-            font-size: var(--vscode-font-size, 13px);
-            padding: ${Theme.spacing.md};
-            color: var(--vscode-foreground);
-            background: var(--vscode-sideBar-background);
-            line-height: 1.5;
-            padding-bottom: ${showSessionWidgets ? '120px' : '40px'};
-        }
-        h1, h2, h3, h4 { color: var(--vscode-foreground); margin-top: 0; margin-bottom: ${Theme.spacing.xs}; font-weight: 600; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QAMate Workspace</title>
+  <style>
+    body {
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      padding: 0;
+      margin: 0;
+      color: var(--vscode-foreground);
+      background: var(--vscode-sideBar-background);
+      overflow: hidden;
+      height: 100vh;
+      box-sizing: border-box;
+    }
 
-        /* Command Bar */
-        .command-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 4px;
-            border-bottom: 1px solid var(--vscode-panel-border);
-            padding-bottom: ${Theme.spacing.sm};
-            margin-bottom: ${Theme.spacing.md};
-        }
-        .cmd-btn {
-            background: var(--vscode-button-secondaryBackground, #3a3a3a);
-            color: var(--vscode-button-secondaryForeground, #fff);
-            padding: 4px 8px;
-            font-size: 11px;
-            width: auto;
-            flex: 1;
-            text-align: center;
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 2px;
-            cursor: pointer;
-        }
-        .cmd-btn:hover {
-            background: var(--vscode-button-secondaryHoverBackground, #4a4a4a);
-        }
-        
-        .wizard-container {
-            display: flex;
-            flex-direction: column;
-            gap: ${Theme.spacing.md};
-        }
+    /* Grid layout structure */
+    .workspace-shell {
+      display: grid;
+      grid-template-rows: 40px 1fr 24px;
+      height: 100vh;
+      width: 100%;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
 
-        /* Docked Prompt Input */
-        .docked-prompt-box {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--vscode-sideBar-background);
-            border-top: 1px solid var(--vscode-panel-border);
-            padding: ${Theme.spacing.md};
-            box-sizing: border-box;
-            z-index: 100;
-        }
-        .prompt-input-container {
-            display: flex;
-            align-items: center;
-            background: var(--vscode-input-background);
-            border: 1px solid var(--vscode-input-border, #454545);
-            border-radius: 2px;
-            padding: 4px;
-        }
-        .prompt-input-container input {
-            border: 0;
-            background: transparent;
-            padding: 6px;
-            color: var(--vscode-input-foreground);
-            width: 100%;
-            outline: none;
-            font-size: 12px;
-        }
+    /* Header Panel styling */
+    .workspace-header {
+      grid-row: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--vscode-sideBarSectionHeader-background);
+      border-bottom: 1px solid var(--vscode-panel-border);
+      padding: 0 10px;
+      box-sizing: border-box;
+    }
 
-        input, select, textarea {
-            background: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border, #454545);
-            padding: 6px;
-            border-radius: 2px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        button {
-            border: 0;
-            padding: 6px 12px;
-            cursor: pointer;
-            border-radius: 2px;
-            font-weight: 500;
-            font-size: 12px;
-            width: 100%;
-            transition: background ${Theme.animation.fast} ease-in-out;
-        }
-        .btn-primary {
-            background: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-        }
-        .btn-primary:hover {
-            background: var(--vscode-button-hoverBackground);
-        }
-        .btn-secondary {
-            background: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-            margin-top: 4px;
-            border: 1px solid var(--vscode-input-border);
-        }
-        .btn-secondary:hover {
-            background: var(--vscode-button-secondaryHoverBackground);
-        }
+    /* Breadcrumbs navigation */
+    .workspace-breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 40%;
+    }
+    .workspace-breadcrumbs strong {
+      color: var(--vscode-foreground);
+    }
 
-        pre {
-            background: var(--vscode-textCodeBlock-background);
-            padding: 8px;
-            border-radius: 2px;
-            overflow-x: auto;
-            margin: ${Theme.spacing.sm} 0;
-            font-family: var(--vscode-editor-font-family, monospace);
-            font-size: var(--vscode-editor-font-size, 11px);
-            border: 1px solid var(--vscode-panel-border);
-        }
+    /* Top Command bar button groups */
+    .workspace-commands {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .command-btn {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border: none;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 20px;
+      line-height: 1;
+    }
+    .command-btn:hover {
+      background: var(--vscode-button-hoverBackground);
+    }
+    .command-btn:disabled {
+      background: var(--vscode-button-secondaryBackground, #3a3a3a);
+      color: var(--vscode-descriptionForeground);
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
 
-        /* Timeline / logs */
-        .timeline-item {
-            display: flex;
-            align-items: center;
-            gap: ${Theme.spacing.sm};
-            margin-bottom: 6px;
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-        }
-        .timeline-icon {
-            display: flex;
-            align-items: center;
-            opacity: 0.7;
-        }
+    /* Notification indicator */
+    .notification-bell {
+      cursor: pointer;
+      position: relative;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 2px;
+    }
+    .notification-bell:hover {
+      background: var(--vscode-toolbar-hoverBackground, rgba(255,255,255,0.05));
+    }
+    .notification-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 6px;
+      height: 6px;
+      background: var(--vscode-testing-iconFailedColor, #f44747);
+      border-radius: 50%;
+    }
 
-        .dev-mode-panel {
-            margin-top: ${Theme.spacing.lg};
-            border-top: 1px dotted var(--vscode-panel-border);
-            padding-top: ${Theme.spacing.sm};
-        }
-        .dev-mode-header {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--vscode-descriptionForeground);
-            margin-bottom: 4px;
-        }
+    /* Body area grid splitting left navigation, active host, and context drawer */
+    .workspace-main {
+      grid-row: 2;
+      display: grid;
+      grid-template-columns: 48px 1fr var(--context-width, 220px);
+      overflow: hidden;
+      transition: grid-template-columns 0.2s ease;
+      box-sizing: border-box;
+      width: 100%;
+    }
 
-        .skeleton-pulse-dot {
-            animation: pulse-dot 1.2s infinite ease-in-out;
-            color: var(--vscode-button-background);
-        }
-        @keyframes pulse-dot {
-            0% { opacity: 0.4; }
-            50% { opacity: 1.0; }
-            100% { opacity: 0.4; }
-        }
+    /* Sidebar navigation icons column */
+    .workspace-sidebar {
+      grid-column: 1;
+      background: var(--vscode-sideBarSectionHeader-background);
+      border-right: 1px solid var(--vscode-panel-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding-top: 10px;
+      box-sizing: border-box;
+    }
+    .sidebar-item {
+      cursor: pointer;
+      font-size: 15px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      color: var(--vscode-descriptionForeground);
+      position: relative;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .sidebar-item:hover {
+      background: var(--vscode-toolbar-hoverBackground, rgba(255,255,255,0.05));
+      color: var(--vscode-foreground);
+    }
+    .sidebar-item.active {
+      color: var(--vscode-button-background);
+      background: rgba(255, 255, 255, 0.04);
+      border-left: 2px solid var(--vscode-button-background);
+      border-radius: 0 4px 4px 0;
+    }
 
-        /* Inline toast */
-        .inline-toast {
-            position: fixed;
-            top: 8px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 6px 16px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 500;
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-            max-width: 90%;
-            text-align: center;
-        }
-        .inline-toast.show {
-            opacity: 1;
-        }
-        .inline-toast.success {
-            background: var(--vscode-testing-iconPassed, #388a34);
-            color: #fff;
-        }
-        .inline-toast.error {
-            background: var(--vscode-testing-iconFailed, #f44747);
-            color: #fff;
-        }
-        .inline-toast.info {
-            background: var(--vscode-badge-background);
-            color: var(--vscode-badge-foreground);
-        }
-        .btn-saving {
-            opacity: 0.6;
-            cursor: wait !important;
-            pointer-events: none;
-        }
+    /* Active Workspace Viewport */
+    .workspace-host {
+      grid-column: 2;
+      overflow-y: auto;
+      padding: 10px;
+      box-sizing: border-box;
+      background: var(--vscode-sideBar-background);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
-        /* Styling active nav bar states */
-        .global-nav-bar .nav-item {
-            padding: 4px 8px;
-            border-radius: 2px;
-            transition: background 0.15s ease-in-out;
-        }
-        .global-nav-bar .nav-item:hover {
-            background: var(--vscode-toolbar-hoverBackground, rgba(255,255,255,0.05));
-        }
-    </style>
+    /* Right Context drawer */
+    .workspace-drawer {
+      grid-column: 3;
+      background: var(--vscode-sideBarSectionHeader-background);
+      border-left: 1px solid var(--vscode-panel-border);
+      overflow-y: auto;
+      padding: 10px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Footer diagnostics panel styling */
+    .workspace-footer {
+      grid-row: 3;
+      box-sizing: border-box;
+    }
+
+    /* Dynamic overlay for notifications dropdown */
+    .notification-dropdown {
+      display: none;
+      position: absolute;
+      top: 36px;
+      right: 10px;
+      background: var(--vscode-sideBar-background);
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+      width: 220px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      z-index: 250;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+
+    /* Hover tooltips styling */
+    .sidebar-item[title]::after {
+      content: attr(title);
+      position: absolute;
+      left: 42px;
+      background: var(--vscode-sideBarSectionHeader-background);
+      color: var(--vscode-foreground);
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 2px;
+      padding: 2px 6px;
+      font-size: 10px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+      z-index: 300;
+    }
+    .sidebar-item:hover::after {
+      opacity: 1;
+    }
+
+    /* Splitter Layout styling */
+    .workspace-splitter {
+      width: 4px;
+      cursor: col-resize;
+      background: var(--vscode-panel-border);
+      transition: background 0.1s ease;
+      z-index: 100;
+    }
+    .workspace-splitter:hover {
+      background: var(--vscode-button-background) !important;
+    }
+
+    /* Modal Overlay panels styling */
+    .qamate-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    .qamate-modal-content {
+      background: var(--vscode-sideBar-background);
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      width: 320px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      box-sizing: border-box;
+    }
+
+    /* Toast overlay styling */
+    .qamate-toast-container {
+      position: fixed;
+      bottom: 26px;
+      right: 12px;
+      z-index: 600;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+    .qamate-toast {
+      background: var(--vscode-notifications-background, var(--vscode-sideBar-background));
+      border: 1px solid var(--vscode-notifications-border, var(--vscode-panel-border));
+      color: var(--vscode-notifications-foreground, var(--vscode-foreground));
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      animation: fade-in 0.2s ease-out;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Tabbed Header Context styles */
+    .drawer-tab {
+      cursor: pointer;
+      padding: 2px 6px;
+      border-bottom: 2px solid transparent;
+      font-size: 9px;
+      opacity: 0.7;
+    }
+    .drawer-tab.active {
+      border-bottom: 2px solid var(--vscode-button-background);
+      font-weight: bold;
+      opacity: 1;
+    }
+
+    /* Responsive collapsible layout configuration rules */
+    @media (max-width: 480px) {
+      .workspace-main {
+        grid-template-columns: 40px 1fr 0px !important;
+      }
+      .workspace-drawer {
+        display: none !important;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div id="inline-toast" class="inline-toast"></div>
+  <div class="workspace-shell">
+    
+    <!-- Top Header -->
+    <div class="workspace-header">
+      <div class="workspace-breadcrumbs">
+        <span>${breadcrumbProject}</span>
+        <span>${icons.chevronRight}</span>
+        <span title="${breadcrumbSession}">${breadcrumbSession.substring(0, 15)}${breadcrumbSession.length > 15 ? '...' : ''}</span>
+        <span>${icons.chevronRight}</span>
+        <span>Evolution</span>
+        <span>${icons.chevronRight}</span>
+        <strong>${breadcrumbActive}</strong>
+      </div>
+      
+      <!-- Command Bar Actions -->
+      <div class="workspace-commands">
+        <button class="command-btn" onclick="postMessage({command: 'analyzeActive'})" title="Parse requirements and system scopes">Analyze</button>
+        <button class="command-btn" onclick="postMessage({command: 'executeNext'})" title="Process next wizard state">Generate</button>
+        <button class="command-btn" onclick="postMessage({command: 'switchTab', tab: 'review'})" title="Verify objectives coverage">Review</button>
+        <button class="command-btn" onclick="postMessage({command: 'switchTab', tab: 'deliver'})" title="Export compiled deliverables">Export</button>
+        
+        <!-- Zoom controls -->
+        <button class="command-btn" onclick="adjustZoom(-10)" title="Zoom Out font size" style="font-family: monospace; font-weight: bold;">A-</button>
+        <button class="command-btn" onclick="adjustZoom(0)" title="Reset default zoom size" style="font-family: monospace; font-weight: bold;">A</button>
+        <button class="command-btn" onclick="adjustZoom(10)" title="Zoom In font size" style="font-family: monospace; font-weight: bold;">A+</button>
+        
+        <!-- Keyboard shortcuts modal guide launcher button -->
+        <button class="command-btn" onclick="toggleModal('shortcuts-modal')" title="Show keyboard shortcuts help panel" style="font-size: 11px;">⌨</button>
 
-    <!-- Navigation Header -->
-    ${navigationBarHtml}
-
-    ${commandBarHtml}
-
-    ${sessionHeaderHtml}
-
-    <!-- Horizontal step progress header -->
-    ${progressStepsHtml}
-
-    <div class="wizard-container">
-      ${activeCardHtml}
+        <!-- Command Palette launcher button -->
+        <button class="command-btn" onclick="toggleModal('palette-modal')" title="Open Command Palette" style="font-size: 11px;">🔍</button>
+        
+        <!-- Notification center toggler bell -->
+        <div class="notification-bell" onclick="toggleNotifications()">
+          🔔
+          <div class="notification-badge"></div>
+        </div>
+      </div>
     </div>
 
-    ${activeTab === 'home' && devModeEnabled ? timelineHtml : ''}
+    <!-- Main Workspace body grids splitting columns -->
+    <div class="workspace-main" id="workspace-main-panel">
+      
+      <!-- Left navigation buttons column -->
+      <div class="workspace-sidebar">
+        ${sidebarTabs
+          .map(
+            (tab) => `
+          <div class="sidebar-item ${tab.id === activeTab ? 'active' : ''}" 
+               title="${tab.label}" 
+               onclick="postMessage({command: 'switchTab', tab: '${tab.id}'})">
+             ${tab.icon}
+          </div>
+        `
+          )
+          .join('')}
+      </div>
 
-    <!-- Docked Assistant Prompt Box & Next Best Action Tracker -->
-    ${dockedPromptHtml}
+      <!-- Center active workspace host -->
+      <div class="workspace-host">
+        ${activeContentHtml}
+      </div>
 
-    <script>
-      const vscode = acquireVsCodeApi();
-      function postMessage(data) {
-        vscode.postMessage(data);
+      <!-- Splitter Element -->
+      <div class="workspace-splitter" id="workspace-splitter"></div>
+
+      <!-- Right Context panel drawer -->
+      <div class="workspace-drawer" id="workspace-context-drawer">
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--vscode-descriptionForeground); border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 4px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
+          <span>Workspace Context</span>
+          <span style="cursor: pointer; opacity: 0.7;" onclick="toggleContextDrawer()">◀</span>
+        </div>
+
+        <!-- Tabbed drawer header navigation -->
+        <div style="display: flex; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 2px; margin-bottom: 4px; gap: 2px;">
+          <div class="drawer-tab active" id="tab-health" onclick="switchDrawerTab('health')">Health</div>
+          <div class="drawer-tab" id="tab-recs" onclick="switchDrawerTab('recs')">Recs</div>
+          <div class="drawer-tab" id="tab-logs" onclick="switchDrawerTab('logs')">Logs</div>
+          <div class="drawer-tab" id="tab-ai" onclick="switchDrawerTab('ai')">AI</div>
+        </div>
+        
+        <!-- Tab: Health widget -->
+        <div id="drawer-panel-health" class="drawer-panel" style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="background: var(--vscode-sideBarSectionHeader-background); padding: 8px; border: 1px solid var(--vscode-panel-border); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 10px; font-weight: 600;">QA Health:</span>
+            ${renderBadge('94%', 'success')}
+          </div>
+        </div>
+
+        <!-- Tab: Recommendations widget -->
+        <div id="drawer-panel-recs" class="drawer-panel" style="display: none; flex-direction: column; gap: 4px;">
+          <div style="background: var(--vscode-sideBarSectionHeader-background); padding: 8px; border: 1px solid var(--vscode-panel-border); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 10px; font-weight: 600;">Recommendations:</span>
+            ${renderBadge('8 Active', 'info')}
+          </div>
+        </div>
+
+        <!-- Tab: Logs timeline -->
+        <div id="drawer-panel-logs" class="drawer-panel" style="display: none; flex-direction: column; gap: 4px;">
+          <div style="font-family: monospace; font-size: 8px; line-height: 1.3; opacity: 0.8;">
+            <div>10:15 - Req parsed</div>
+            <div>10:18 - System Model created</div>
+            <div>10:22 - Strategy generated</div>
+          </div>
+        </div>
+
+        <!-- Tab: AI Provider Status -->
+        <div id="drawer-panel-ai" class="drawer-panel" style="display: none; flex-direction: column; gap: 4px;">
+          <div style="font-size: 9.5px; opacity: 0.8;">
+            Active Provider: <strong>Claude 3.5</strong><br/>
+            Latency: <strong>230ms</strong><br/>
+            Requests today: <strong>284</strong>
+          </div>
+        </div>
+
+        <div style="font-size: 9px; color: var(--vscode-descriptionForeground); margin-top: auto; line-height: 1.3;">
+          Click Left sidebar options to edit workspace items. Drag splitter to resize panel drawer.
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <div class="workspace-footer">
+      ${statusBarHtml}
+    </div>
+
+    <!-- Notifications Dropdown Popup -->
+    <div class="notification-dropdown" id="notification-dropdown-panel">
+      <div style="font-size: 10px; font-weight: 700; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 4px; margin-bottom: 6px;">Notifications</div>
+      <div style="display: flex; flex-direction: column; gap: 6px; font-size: 11px;">
+        <div style="border-left: 2px solid var(--vscode-testing-iconPassedColor, #89D185); padding-left: 4px;">
+          <strong>Requirement Loaded:</strong> ${breadcrumbSession}
+        </div>
+        <div style="border-left: 2px solid var(--vscode-button-background); padding-left: 4px;">
+          <strong>Workspace Health:</strong> Strategy compiled successfully.
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal Help Dialog -->
+    <div class="qamate-modal-overlay" id="shortcuts-modal" onclick="closeModalsOnOutsideClick(event, 'shortcuts-modal')">
+      <div class="qamate-modal-content">
+        <div style="font-size: 11px; font-weight: bold; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <span>Workspace Keyboard Shortcuts</span>
+          <span style="cursor: pointer;" onclick="toggleModal('shortcuts-modal')">✕</span>
+        </div>
+        <table style="width: 100%; font-size: 9.5px; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid var(--vscode-panel-border);"><td style="padding: 3px 0;"><strong>Ctrl+Shift+A</strong></td><td style="padding: 3px 0; text-align: right;">Parse Spec & Analyze</td></tr>
+          <tr style="border-bottom: 1px solid var(--vscode-panel-border);"><td style="padding: 3px 0;"><strong>Ctrl+Shift+G</strong></td><td style="padding: 3px 0; text-align: right;">Generate Strategy</td></tr>
+          <tr style="border-bottom: 1px solid var(--vscode-panel-border);"><td style="padding: 3px 0;"><strong>Ctrl+Shift+R</strong></td><td style="padding: 3px 0; text-align: right;">Open Review Workspace</td></tr>
+          <tr style="border-bottom: 1px solid var(--vscode-panel-border);"><td style="padding: 3px 0;"><strong>Ctrl+Shift+D</strong></td><td style="padding: 3px 0; text-align: right;">Open Dashboard Tab</td></tr>
+          <tr style="border-bottom: 1px solid var(--vscode-panel-border);"><td style="padding: 3px 0;"><strong>Ctrl+Shift+H</strong></td><td style="padding: 3px 0; text-align: right;">Show Keyboard Help</td></tr>
+          <tr style="border-bottom: 1px solid var(--vscode-panel-border);"><td style="padding: 3px 0;"><strong>Ctrl+Shift+P</strong></td><td style="padding: 3px 0; text-align: right;">Open Command Palette</td></tr>
+          <tr style="border-bottom: 1px solid var(--vscode-panel-border);"><td style="padding: 3px 0;"><strong>Ctrl+Shift+F</strong></td><td style="padding: 3px 0; text-align: right;">Global Search Workspace</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Command Palette Modal Dialog -->
+    <div class="qamate-modal-overlay" id="palette-modal" onclick="closeModalsOnOutsideClick(event, 'palette-modal')">
+      <div class="qamate-modal-content">
+        <div style="font-size: 11px; font-weight: bold; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 6px; margin-bottom: 8px;">Command Palette</div>
+        <input type="text" placeholder="Type a workspace action..." style="width: 100%; font-size: 10px; padding: 4px; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: 2px; margin-bottom: 8px;" id="palette-search-input" onkeyup="filterPalette()" />
+        <div id="palette-commands-list" style="display: flex; flex-direction: column; gap: 4px; font-size: 9.5px; max-height: 120px; overflow-y: auto;">
+          <div onclick="triggerPaletteCommand('analyzeActive')" style="cursor: pointer; padding: 4px; border-radius: 2px; background: rgba(255,255,255,0.02);">QAMate: Analyze Requirement</div>
+          <div onclick="triggerPaletteCommand('executeNext')" style="cursor: pointer; padding: 4px; border-radius: 2px;">QAMate: Generate Strategy Blueprint</div>
+          <div onclick="triggerPaletteCommand('switchTab', 'review')" style="cursor: pointer; padding: 4px; border-radius: 2px;">QAMate: Open Review Board</div>
+          <div onclick="triggerPaletteCommand('switchTab', 'deliver')" style="cursor: pointer; padding: 4px; border-radius: 2px;">QAMate: Open Deliveries Center</div>
+          <div onclick="triggerPaletteCommand('switchTab', 'settings')" style="cursor: pointer; padding: 4px; border-radius: 2px;">QAMate: Open Project DNA Cockpit</div>
+          <div onclick="triggerPaletteCommand('switchTab', 'hub')" style="cursor: pointer; padding: 4px; border-radius: 2px;">QAMate: Open AI Hub Center</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications Container Overlay -->
+    <div class="qamate-toast-container" id="toast-container"></div>
+
+  </div>
+
+  <script>
+    const vscode = acquireVsCodeApi();
+    function postMessage(data) {
+      vscode.postMessage(data);
+    }
+
+    // Toast Notifications trigger helper
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'qamate-toast';
+      toast.innerHTML = '<span>✓</span> <span>' + message + '</span>';
+      container.appendChild(toast);
+      setTimeout(function() {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.2s ease';
+        setTimeout(function() {
+          toast.remove();
+        }, 200);
+      }, 2500);
+    }
+
+    // Toggle Notifications dropdown panel
+    function toggleNotifications() {
+      const panel = document.getElementById('notification-dropdown-panel');
+      if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+      } else {
+        panel.style.display = 'block';
       }
-      function applySuggestedPrompt(text) {
-        const input = document.getElementById('chat-prompt-input');
-        if (input) {
-          input.value = text;
-          input.focus();
+    }
+
+    // Switch right context tabs
+    function switchDrawerTab(tabId) {
+      document.querySelectorAll('.drawer-tab').forEach(function(el) {
+        el.classList.remove('active');
+      });
+      document.querySelectorAll('.drawer-panel').forEach(function(el) {
+        el.style.display = 'none';
+      });
+      document.getElementById('tab-' + tabId).classList.add('active');
+      document.getElementById('drawer-panel-' + tabId).style.display = 'flex';
+    }
+
+    // Toggle modal panels
+    function toggleModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal.style.display === 'flex') {
+        modal.style.display = 'none';
+      } else {
+        modal.style.display = 'flex';
+        if (modalId === 'palette-modal') {
+          setTimeout(function() { document.getElementById('palette-search-input').focus(); }, 50);
         }
       }
-      function submitPromptQuery() {
-        const input = document.getElementById('chat-prompt-input');
-        if (input && input.value) {
-          const text = input.value;
-          input.value = '';
-          postMessage({ command: 'submitPromptQuery', text });
-        }
+    }
+
+    function closeModalsOnOutsideClick(e, modalId) {
+      if (e.target.id === modalId) {
+        toggleModal(modalId);
       }
-      function handlePromptKey(event) {
-        if (event.key === 'Enter') {
-          submitPromptQuery();
-        }
+    }
+
+    // Command palette handlers
+    function filterPalette() {
+      const input = document.getElementById('palette-search-input').value.toLowerCase();
+      const items = document.getElementById('palette-commands-list').children;
+      for (let i = 0; i < items.length; i++) {
+        const text = items[i].textContent.toLowerCase();
+        items[i].style.display = text.indexOf(input) !== -1 ? 'block' : 'none';
+      }
+    }
+
+    function triggerPaletteCommand(cmd, tab) {
+      toggleModal('palette-modal');
+      if (cmd === 'switchTab') {
+        postMessage({command: cmd, tab: tab});
+        showToast('Navigating tab ' + tab);
+      } else {
+        postMessage({command: cmd});
+        showToast('Executing command ' + cmd);
+      }
+    }
+
+    // Adjust zoom levels
+    let currentZoom = 100;
+    function adjustZoom(delta) {
+      if (delta === 0) {
+        currentZoom = 100;
+      } else {
+        currentZoom += delta;
+      }
+      document.body.style.zoom = currentZoom + '%';
+      showToast('Zoom size: ' + currentZoom + '%');
+    }
+
+    // Resizable splitter logic
+    (function() {
+      const splitter = document.getElementById('workspace-splitter');
+      const mainPanel = document.getElementById('workspace-main-panel');
+      const drawer = document.getElementById('workspace-context-drawer');
+      let isDragging = false;
+
+      // Restore persisted width if exists
+      const savedWidth = localStorage.getItem('qamate-context-drawer-width');
+      if (savedWidth) {
+        mainPanel.style.setProperty('--context-width', savedWidth + 'px');
       }
 
-      // Helper toast messages for settings/sessions pages inside the layout context
-      function showToast(message, type) {
-        type = type || 'info';
-        var toast = document.getElementById('inline-toast');
-        if (!toast) return;
-        toast.className = 'inline-toast ' + type;
-        toast.textContent = message;
-        toast.classList.add('show');
-        clearTimeout(toast._timer);
-        toast._timer = setTimeout(function() {
-          toast.classList.remove('show');
-        }, 3000);
+      splitter.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        const width = window.innerWidth - e.clientX;
+        if (width > 120 && width < 450) {
+          mainPanel.style.setProperty('--context-width', width + 'px');
+          localStorage.setItem('qamate-context-drawer-width', width);
+        }
+      });
+
+      document.addEventListener('mouseup', function() {
+        if (isDragging) {
+          isDragging = false;
+          document.body.style.cursor = 'default';
+        }
+      });
+    })();
+
+    // Collapse and expand right context drawer panel
+    let contextExpanded = true;
+    function toggleContextDrawer() {
+      const main = document.getElementById('workspace-main-panel');
+      const drawer = document.getElementById('workspace-context-drawer');
+      const splitter = document.getElementById('workspace-splitter');
+      if (contextExpanded) {
+        main.style.gridTemplateColumns = '48px 1fr 0px';
+        drawer.style.display = 'none';
+        splitter.style.display = 'none';
+        contextExpanded = false;
+      } else {
+        const savedWidth = localStorage.getItem('qamate-context-drawer-width') || '220';
+        main.style.gridTemplateColumns = '48px 1fr var(--context-width, ' + savedWidth + 'px)';
+        drawer.style.display = 'flex';
+        splitter.style.display = 'block';
+        contextExpanded = true;
       }
-    </script>
+    }
+
+    // Keydown shortcuts binding
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.shiftKey) {
+        const key = e.key.toUpperCase();
+        if (key === 'A') {
+          e.preventDefault();
+          postMessage({command: 'analyzeActive'});
+          showToast('Triggered specs analysis');
+        } else if (key === 'G') {
+          e.preventDefault();
+          postMessage({command: 'executeNext'});
+          showToast('Triggered strategy compilation');
+        } else if (key === 'R') {
+          e.preventDefault();
+          postMessage({command: 'switchTab', tab: 'review'});
+          showToast('Opening review board');
+        } else if (key === 'D') {
+          e.preventDefault();
+          postMessage({command: 'switchTab', tab: 'dashboard'});
+          showToast('Opening dashboard cockpit');
+        } else if (key === 'H') {
+          e.preventDefault();
+          toggleModal('shortcuts-modal');
+        } else if (key === 'P') {
+          e.preventDefault();
+          toggleModal('palette-modal');
+        }
+      }
+    });
+  </script>
 </body>
 </html>`;
 }

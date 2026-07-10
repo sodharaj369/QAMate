@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import * as fs from 'fs';
 import { DefaultCoverageEngine } from '../src/coverage-engine/coverageEngine.js';
 import { DefaultKnowledgeEngine } from '../src/knowledge/knowledgeEngine.js';
 import { SafetyScanner } from '../src/review/safetyScanner.js';
@@ -64,7 +65,12 @@ describe('Performance Benchmarking diagnostics', () => {
   });
 
   it('should measure Knowledge Engine pattern lookup speed', async () => {
-    const knowledgeEngine = new DefaultKnowledgeEngine();
+    const testStorePath = 'd:/QAMate/data/knowledge/store-bench.json';
+    if (fs.existsSync(testStorePath)) {
+      try { fs.unlinkSync(testStorePath); } catch {}
+    }
+
+    const knowledgeEngine = new DefaultKnowledgeEngine(testStorePath);
 
     // Insert 50 mock entries into the store
     const mockEntries = Array.from({ length: 50 }, (_, i) => ({
@@ -79,6 +85,21 @@ describe('Performance Benchmarking diagnostics', () => {
     }));
 
     (knowledgeEngine as any).store = mockEntries;
+    mockEntries.forEach(entry => {
+      knowledgeEngine.getRepository().getStore('project').push({
+        id: entry.id,
+        title: entry.title,
+        type: 'org-standards',
+        scope: 'project',
+        content: entry.description,
+        tags: entry.keywords,
+        createdBy: 'QA Benchmark',
+        version: 1,
+        confidence: entry.confidence,
+        status: 'active',
+        usageCount: 0
+      });
+    });
 
     const start = performance.now();
     const result = await knowledgeEngine.findSimilarRequirements({

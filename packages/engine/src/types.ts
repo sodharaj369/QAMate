@@ -1,4 +1,5 @@
 import { Requirement, RequirementIntelligenceReport, Answer, ProjectConfig } from './domain.js';
+import { QAMentalModel } from './platform/reasoningModel.js';
 
 /**
  * User-defined preferences controlling the scope and detail of test generation.
@@ -21,7 +22,9 @@ export interface GeneratorContext {
   readonly generationPreferences: GenerationPreferences;
   readonly compiledAt: Date;
   readonly historicalCorrections?: string[];
+  readonly mentalModel?: QAMentalModel;
 }
+
 
 /**
  * Integrity report checking context quality and blocked states before generation.

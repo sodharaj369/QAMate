@@ -2,8 +2,15 @@ import { GeneratorContext } from '../types.js';
 import { ArtifactPlan, QAArtifact } from '../domain.js';
 import { IArtifactGenerator, ILLMProvider } from '../interfaces/index.js';
 import { TestCasesFactory } from './testCasesFactory.js';
+import { TokenOptimizer, ContextItem } from '../token-optimizer/tokenOptimizer.js';
 
 export class DefaultArtifactGenerator implements IArtifactGenerator {
+  private static optimizer = new TokenOptimizer();
+
+  public static getOptimizer(): TokenOptimizer {
+    return DefaultArtifactGenerator.optimizer;
+  }
+
   public async generateArtifacts(
     context: GeneratorContext,
     plan: ArtifactPlan,
@@ -12,12 +19,19 @@ export class DefaultArtifactGenerator implements IArtifactGenerator {
     // 1. Compile prompt using strategy, context, and planner instructions
     const prompt = this.compilePrompt(context, plan);
 
-    // 2. Call LLM Provider
-    const response = await provider.generate(prompt, {
-      systemInstruction:
-        'You are QAMate, a Senior QA Thinking Assistant. Generate precise engineering artifacts matching the plan requested.',
-      responseFormat: 'text',
-    });
+    // 2. Lookup Prompt Replay Cache
+    let response = DefaultArtifactGenerator.optimizer.lookupCache(prompt);
+    if (response) {
+      // Bypassed provider call: cache hit resolved
+    } else {
+      // Call LLM Provider
+      response = await provider.generate(prompt, {
+        systemInstruction:
+          'You are QAMate, a Senior QA Thinking Assistant. Generate precise engineering artifacts matching the plan requested.',
+        responseFormat: 'text',
+      });
+      DefaultArtifactGenerator.optimizer.saveCache(prompt, response);
+    }
 
     const artifacts: QAArtifact[] = [];
 
@@ -59,25 +73,46 @@ export class DefaultArtifactGenerator implements IArtifactGenerator {
   }
 
   private compilePrompt(context: GeneratorContext, plan: ArtifactPlan): string {
-    return `Generate QA Artifacts for Requirement: "${context.requirement.title}"
-Strategy Objectives:
-${context.intelligence.businessRules.map((r) => `- [${r.id}]: ${r.description}`).join('\n')}
+    const staticSection = `INSTRUCTION: You are QAMate, a Senior QA Thinking Assistant. Generate precise engineering artifacts matching the plan requested.
+PERSONA: ${plan.persona.toUpperCase()}
+TECH PROFILE: Language: ${plan.profile.language}, Framework: ${plan.profile.framework}, Style: ${plan.profile.testingStyle}
+SELECTED ARTIFACTS: ${plan.selectedArtifacts.join(', ')}
+DIRECTIVES: ${plan.generationInstructions.join('; ')}
+FORMAT: Place each artifact under its respective Markdown header, e.g. "### ${plan.selectedArtifacts[0]}".`;
 
-Persona: ${plan.persona.toUpperCase()}
-Tech Stack Profile:
-- Language:  ${plan.profile.language}
-- Framework: ${plan.profile.framework}
-- Database:  ${plan.profile.database || 'None'}
-- Cloud:     ${plan.profile.cloud || 'None'}
-- Style:     ${plan.profile.testingStyle}
+    const items: ContextItem[] = [
+      {
+        id: 'requirement-title',
+        type: 'requirement',
+        content: `Requirement Title: ${context.requirement.title}`,
+        priority: 100
+      },
+      {
+        id: 'requirement-content',
+        type: 'requirement',
+        content: `Requirement Spec:\n${context.requirement.content}`,
+        priority: 100
+      },
+      {
+        id: 'business-rules',
+        type: 'playbook',
+        content: `Business Rules:\n${context.intelligence.businessRules.map((r) => `- [${r.id}]: ${r.description}`).join('\n')}`,
+        priority: 95
+      }
+    ];
 
-Selected Artifacts:
-${plan.selectedArtifacts.map((a) => `- ${a}`).join('\n')}
+    if (context.answers && context.answers.length > 0) {
+      items.push({
+        id: 'user-answers',
+        type: 'history',
+        content: `User Answer Clarifications:\n${context.answers.map((a) => `- Question [${a.questionId}]: Answer: ${a.textValue || a.selectedOptions?.join(', ') || ''}`).join('\n')}`,
+        priority: 40
+      });
+    }
 
-Generation Directives:
-${plan.generationInstructions.map((i) => `- ${i}`).join('\n')}
+    const result = DefaultArtifactGenerator.optimizer.planAndOptimize(items, plan.persona || 'default');
 
-Please format your response by placing each artifact under its respective Markdown header, e.g. "### ${plan.selectedArtifacts[0]}".`;
+    return `${staticSection}\n\n### CONTEXT DATA\n${result.prompt}`;
   }
 
   private extractSection(response: string, heading: string): string {

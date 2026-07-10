@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import * as fs from 'fs';
 import {
   Requirement,
   RequirementIntelligenceReport,
@@ -55,8 +56,21 @@ const makeArtifact = (type: string, content: string): QAArtifact => ({
 });
 
 describe('Knowledge Engine tests', () => {
+  const testStorePath = 'd:/QAMate/data/knowledge/store-test.json';
+
+  beforeEach(() => {
+    if (fs.existsSync(testStorePath)) {
+      try { fs.unlinkSync(testStorePath); } catch {}
+    }
+  });
+
+  afterAll(() => {
+    if (fs.existsSync(testStorePath)) {
+      try { fs.unlinkSync(testStorePath); } catch {}
+    }
+  });
   it('should extract knowledge entries from artifacts, intelligence, and review', async () => {
-    const engine = new DefaultKnowledgeEngine();
+    const engine = new DefaultKnowledgeEngine(testStorePath);
     const intelligence = makeIntelligence();
     const review = makeReviewReport({
       suggestions: ['Add token expiry edge case tests.'],
@@ -79,7 +93,7 @@ describe('Knowledge Engine tests', () => {
   });
 
   it('should find similar requirements by keyword overlap', async () => {
-    const engine = new DefaultKnowledgeEngine();
+    const engine = new DefaultKnowledgeEngine(testStorePath);
     const intelligence = makeIntelligence();
     const review = makeReviewReport();
     const artifacts: QAArtifact[] = [
@@ -110,7 +124,7 @@ describe('Knowledge Engine tests', () => {
   });
 
   it('should query knowledge by category filter', async () => {
-    const engine = new DefaultKnowledgeEngine();
+    const engine = new DefaultKnowledgeEngine(testStorePath);
     const intelligence = makeIntelligence();
     const review = makeReviewReport({
       issues: [
@@ -140,7 +154,7 @@ describe('Knowledge Engine tests', () => {
   });
 
   it('should learn from manual user corrections and expose them via search', async () => {
-    const engine = new DefaultKnowledgeEngine();
+    const engine = new DefaultKnowledgeEngine(testStorePath);
     
     const entry = await engine.learnFromCorrection(
       'req-5',
@@ -159,5 +173,33 @@ describe('Knowledge Engine tests', () => {
 
     expect(queryResult.matches.length).toBeGreaterThan(0);
     expect(queryResult.matches[0].entry.description).toContain('3600 seconds');
+  });
+
+  it('should manage knowledge repository tiered search, approval lifecycle, and rollback revisions', () => {
+    const engine = new DefaultKnowledgeEngine(testStorePath);
+    const repo = engine.getRepository();
+
+    const searchRes = repo.search('room availability locks reservation', 'Hospitality');
+    expect(searchRes.length).toBeGreaterThan(0);
+    expect(searchRes[0].item.title).toBe('Hospitality Playbook rules');
+    expect(searchRes[0].relevance).toBeGreaterThan(0);
+
+    const suggestion = repo.addSuggestion('New Hospitality Tax Rule', 'domain-playbooks', 'Verify tax calculations on checkout.');
+    expect(suggestion.status).toBe('suggestion');
+
+    expect(() => repo.approveSuggestion(suggestion.id, 'AI Orchestrator')).toThrow('AI Safety Lock');
+
+    const approved = repo.approveSuggestion(suggestion.id, 'QA Manager');
+    expect(approved.status).toBe('active');
+    expect(approved.approvedBy).toBe('QA Manager');
+    expect(approved.version).toBe(2);
+
+    const history = repo.getHistory();
+    expect(history.length).toBe(1);
+    expect(history[0].version).toBe(1);
+    
+    repo.rollback(1);
+    const rolledBackItem = repo.getStore('project').find((i) => i.id === suggestion.id);
+    expect(rolledBackItem?.status).toBe('suggestion');
   });
 });

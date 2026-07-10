@@ -9,6 +9,7 @@ import {
   KnowledgeResult,
 } from '../domain.js';
 import { IKnowledgeEngine } from '../interfaces/index.js';
+import { KnowledgeRepository } from './knowledgeRepository.js';
 
 /**
  * DefaultKnowledgeEngine
@@ -22,7 +23,12 @@ import { IKnowledgeEngine } from '../interfaces/index.js';
  * persistence adapters (JSON, SQLite, SQL Server) behind this same interface.
  */
 export class DefaultKnowledgeEngine implements IKnowledgeEngine {
+  private readonly repo: KnowledgeRepository;
   private readonly store: KnowledgeEntry[] = [];
+
+  constructor(customStorePath?: string) {
+    this.repo = new KnowledgeRepository(customStorePath);
+  }
 
   // ── Extract Knowledge ─────────────────────────────────────────────
 
@@ -116,6 +122,24 @@ export class DefaultKnowledgeEngine implements IKnowledgeEngine {
     // Persist all extracted entries into the in-memory store
     this.store.push(...extracted);
 
+    // Also persist inside the KnowledgeRepository project memory scope
+    for (const entry of extracted) {
+      this.repo.getStore('project').push({
+        id: entry.id,
+        title: entry.title,
+        type: entry.category === 'lesson-learned' ? 'lessons-learned' : 'org-standards',
+        scope: 'project',
+        content: entry.description,
+        tags: entry.keywords,
+        createdBy: 'AI Orchestrator',
+        version: 1,
+        confidence: entry.confidence,
+        status: 'active',
+        usageCount: 0
+      });
+    }
+    this.repo.savePersistence();
+
     return extracted;
   }
 
@@ -153,12 +177,29 @@ export class DefaultKnowledgeEngine implements IKnowledgeEngine {
   // ── Find Similar Requirements ─────────────────────────────────────
 
   public async findSimilarRequirements(requirement: Requirement): Promise<KnowledgeResult> {
-    const keywords = this.extractKeywords(`${requirement.title} ${requirement.content}`);
+    const queryText = requirement.title + ' ' + requirement.content;
+    const matches = this.repo.search(queryText);
+    
+    return {
+      query: { keywords: this.extractKeywords(requirement.title) },
+      matches: matches.map((m) => ({
+        entry: {
+          id: m.item.id,
+          category: 'user-correction',
+          title: m.item.title,
+          description: m.item.content,
+          keywords: m.item.tags,
+          confidence: m.item.confidence,
+          createdAt: m.item.approvedOn || new Date()
+        },
+        relevanceScore: m.relevance
+      })),
+      searchedAt: new Date()
+    };
+  }
 
-    return this.queryKnowledge({
-      keywords,
-      maxResults: 5,
-    });
+  public getRepository(): KnowledgeRepository {
+    return this.repo;
   }
 
   public async learnFromCorrection(
@@ -176,6 +217,16 @@ export class DefaultKnowledgeEngine implements IKnowledgeEngine {
       0.95,
     );
     this.store.push(entry);
+
+    // Sync to KnowledgeRepository suggestion list
+    this.repo.addSuggestion(
+      `Correction: ${questionText.slice(0, 30)}`,
+      'lessons-learned',
+      correctedAnswer,
+      undefined,
+      ['correction', 'user-added']
+    );
+
     return entry;
   }
 

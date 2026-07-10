@@ -1,4 +1,4 @@
-import { WorkspaceState, WorkspaceStep } from './types.js';
+import { WorkspaceState } from './types.js';
 
 export interface AppStateData extends WorkspaceState {
   selectedPersona: string;

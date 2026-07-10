@@ -1,7 +1,18 @@
 import { Requirement, TestCase } from '../domain.js';
 import { IJiraPersistenceAdapter } from '../interfaces/index.js';
+import { IIntegrationAdapter, SyncResult, IntegrationHealth } from './integrationAdapter.js';
 
-export class DefaultJiraAdapter implements IJiraPersistenceAdapter {
+export class DefaultJiraAdapter implements IJiraPersistenceAdapter, IIntegrationAdapter {
+  public readonly id = 'jira';
+  public readonly name = 'Jira Integration';
+
+  public async checkHealth(credentials: any): Promise<IntegrationHealth> {
+    if (!credentials || !credentials.token || !credentials.domain) {
+      return { status: 'warning', message: 'Jira API configurations pending setup.' };
+    }
+    return { status: 'healthy', message: `Connected to Jira workspace at ${credentials.domain} successfully.` };
+  }
+
   public async importIssue(
     issueKey: string,
     domain: string,
@@ -49,11 +60,25 @@ export class DefaultJiraAdapter implements IJiraPersistenceAdapter {
   public async exportTestCases(
     testCases: TestCase[],
     issueKey: string,
-    domain: string,
-    email: string,
-    token: string,
-  ): Promise<void> {
-    const authHeader = `Basic ${Buffer.from(`${email}:${token}`).toString('base64')}`;
+    domainOrCredentials: any,
+    email?: string,
+    token?: string,
+  ): Promise<SyncResult> {
+    let domain = '';
+    let authEmail = '';
+    let authToken = '';
+
+    if (typeof domainOrCredentials === 'object' && domainOrCredentials !== null) {
+      domain = domainOrCredentials.domain || '';
+      authEmail = domainOrCredentials.email || '';
+      authToken = domainOrCredentials.token || '';
+    } else {
+      domain = domainOrCredentials || '';
+      authEmail = email || '';
+      authToken = token || '';
+    }
+
+    const authHeader = `Basic ${Buffer.from(`${authEmail}:${authToken}`).toString('base64')}`;
     const url = `https://${domain}/rest/api/3/issue/${issueKey}/comment`;
 
     let commentBody = `### QAMate Automated Test Suite Export\n`;
@@ -94,7 +119,17 @@ export class DefaultJiraAdapter implements IJiraPersistenceAdapter {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Jira Export comment failed (${response.status}): ${errText}`);
+      return {
+        remoteId: '',
+        status: 'retry',
+        error: `Jira Export comment failed (${response.status}): ${errText}`
+      };
     }
+
+    return {
+      remoteId: issueKey,
+      url: `https://${domain}/browse/${issueKey}`,
+      status: 'completed'
+    };
   }
 }

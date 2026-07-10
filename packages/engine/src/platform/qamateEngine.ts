@@ -7,6 +7,8 @@ import {
   UserPersona,
   QuestionCandidate,
   Question,
+  WorkspaceProfile,
+  ProjectDNA,
 } from '../domain.js';
 import { TestCaseParser } from '../artifacts/testCaseParser.js';
 import { IConversationStorage, ILLMProvider } from '../interfaces/index.js';
@@ -23,6 +25,7 @@ import {
   DefaultQuestionDeduplicator,
   DefaultQuestionPlanner,
   DefaultClarificationEngine,
+  PlaybookDecisionEngine,
 } from '../clarification/index.js';
 import { DefaultContextCompiler } from '../context/index.js';
 import { DefaultTestStrategyEngine } from '../strategy/index.js';
@@ -33,9 +36,29 @@ import {
 } from '../artifacts/index.js';
 import { DefaultReviewEngine } from '../review/index.js';
 import { DefaultCoverageEngine } from '../coverage-engine/index.js';
+import { DefaultKnowledgeEngine } from '../knowledge/knowledgeEngine.js';
+import { SystemUnderstandingEngine } from './systemEngine.js';
+import { QAReasoningEngine } from './reasoningEngine.js';
+import { ConfigurationManager } from './config.js';
+import { EvidenceGraph } from './reasoningModel.js';
+import { WorkspaceIntelligenceEngine } from '../workspace/WorkspaceIntelligenceEngine.js';
+import { ProjectDNAStore } from '../workspace/DNA/ProjectDNAStore.js';
+import { AIOrchestrator } from '../provider-hub/orchestrator.js';
+import { TokenAnalytics } from '../analytics/tokenAnalytics.js';
+import { EfficiencyEngine } from './efficiency.js';
+import { TrustFramework } from './trust.js';
 
 export class QAMateEngine {
-  constructor(private readonly storage: IConversationStorage) {}
+  public readonly knowledgeEngine = new DefaultKnowledgeEngine();
+  public readonly configManager = new ConfigurationManager();
+  public readonly orchestrator: AIOrchestrator;
+
+  constructor(private readonly storage: IConversationStorage) {
+    const efficiency = new EfficiencyEngine();
+    const telemetry = new TokenAnalytics();
+    const trust = new TrustFramework();
+    this.orchestrator = new AIOrchestrator(efficiency, telemetry, trust, this.configManager);
+  }
 
   public async getSession(sessionId: string): Promise<Conversation | undefined> {
     return this.storage.loadConversation(sessionId);
@@ -46,6 +69,12 @@ export class QAMateEngine {
   }
 
   public async createSession(requirement: Requirement, provider?: ILLMProvider): Promise<Conversation> {
+    if (provider) {
+      this.orchestrator.registerCustomProvider(provider);
+    }
+    const hasAI = provider && provider.id !== 'mock' && provider.id !== 'mock-llm-provider';
+    const activeProvider = hasAI ? this.orchestrator : undefined;
+
     // 1. Validate
     const validator = new DefaultRequirementValidator();
     const validation = await validator.validate(requirement);
@@ -53,7 +82,37 @@ export class QAMateEngine {
       throw new Error(`Validation Error: ${validation.issues[0]?.message}`);
     }
 
-    // 2. Analyze
+    // 2. Run System Understanding Engine
+    const systemEngine = new SystemUnderstandingEngine();
+    const systemModel = await systemEngine.understand(requirement, activeProvider);
+
+    // 3. Formulate Evidence Graph & Retrieve relevant knowledge
+    const knowledgeEntries = this.knowledgeEngine.getStore();
+    const matchingKnowledge = knowledgeEntries
+      .filter((k) => k.keywords.some((word) => requirement.content.toLowerCase().includes(word.toLowerCase())))
+      .map((k) => `${k.title}: ${k.description}`);
+
+    const evidenceGraph: EvidenceGraph = {
+      system: systemModel,
+      rulesEvidence: [],
+      knowledgeEvidence: matchingKnowledge,
+      aiObservations: [
+        {
+          id: 'initial-obs-1',
+          type: 'Component',
+          value: systemModel.name,
+          confidence: 0.95,
+          evidence: ['AI Architecture scan completed'],
+          reason: 'Initial system model mapped by QAMate scan.'
+        }
+      ]
+    };
+
+    // 4. Run QA Reasoning Engine to build initial QA Mental Model
+    const reasoningEngine = new QAReasoningEngine();
+    const mentalModel = await reasoningEngine.reason(evidenceGraph);
+
+    // 5. Analyze static aspects (keeps backward compatibility for analysisResult validation reports)
     const scorer = new DefaultConfidenceScorer();
     const strategy = new RuleBasedAnalysisStrategy();
     const analyzer = new DefaultRequirementAnalyzer(validator, scorer, [strategy]);
@@ -61,24 +120,22 @@ export class QAMateEngine {
 
     let candidates: QuestionCandidate[] = [];
     let activeQuestions: Question[] = [];
+    let telemetryLog: any = null;
 
-    // Decision Ladder: skip AI clarification if static score recommendation is 'generate-direct'
-    if (provider && analysisResult.confidence.recommendation !== 'generate-direct') {
-      const prompt = `You are a Senior Principal QA Engineer. Review the following software requirement specification and the static rule-based analysis findings to assess QA readiness.
+    if (activeProvider && analysisResult.confidence.recommendation !== 'generate-direct') {
+      const prompt = `You are a Senior Principal QA Engineer. Review the structural System Model and QA Mental Model derived for the requirement:
 
-Requirement:
-"""
-${requirement.content}
-"""
+System Model Name: ${systemModel.name}
+Components: ${JSON.stringify(systemModel.components)}
+Flows: ${JSON.stringify(systemModel.flows)}
+Quality Attributes: ${systemModel.qualityAttributes.join(', ')}
+Risks: ${systemModel.risks.join(', ')}
+Gaps/Unknowns: ${systemModel.unknowns.join(', ')}
 
-Static Findings:
-- Business Rules:
-${analysisResult.intelligence.businessRules.map((r: any) => `- [${r.id}] ${r.description} (Condition: ${r.condition}, Outcome: ${r.expectedOutcome})`).join('\n')}
-- Actors: ${analysisResult.intelligence.actors.map((a: any) => a.name).join(', ')}
+QA Mental Model Exclusions: ${mentalModel.excludedTesting.join(', ')}
 
-Review this requirement and decide if it is ready to write complete, high-quality test cases.
-Only ask questions if the answer materially changes the test strategy, risks, generated test cases, or coverage. 
-Do NOT ask boilerplate questions. Ask a maximum of 3 blocking questions. If no critical blocking decisions are needed, mark the requirement as ready with no questions.
+Review this and suggest blocking clarification questions (maximum 2) to resolve the unknowns or gaps in the system model.
+Only ask questions if the answer materially changes the testing strategy or output. Do NOT ask boilerplate questions. If the system has exclusions, do not ask questions about those excluded areas.
 
 You must respond with a raw JSON object matching this TypeScript interface (do not return any markdown format, code ticks, or extra text):
 {
@@ -88,20 +145,11 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
     "question": string;
     "whyAsking": string;
     "options"?: string[];
-  }[],
-  "additionalBusinessRules"?: {
-    "description": string;
-    "condition": string;
-    "expectedOutcome": string;
-  }[],
-  "additionalActors"?: {
-    "name": string;
-    "description": string;
   }[]
 }
 `;
 
-      const responseText = await provider.generate(prompt);
+      const responseText = await activeProvider.generate(prompt);
       let parsed: any;
       try {
         const cleanedText = responseText.replace(/```json|```/gi, '').trim();
@@ -111,59 +159,37 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
         throw new Error('AI returned an invalid JSON response.');
       }
 
-      if (parsed) {
-        if (parsed.additionalBusinessRules && Array.isArray(parsed.additionalBusinessRules)) {
-          let ruleCounter = analysisResult.intelligence.businessRules.length + 1;
-          for (const rule of parsed.additionalBusinessRules) {
-            analysisResult.intelligence.businessRules.push({
-              id: `BR-${String(ruleCounter++).padStart(3, '0')}`,
-              description: rule.description,
-              condition: rule.condition || 'Always active',
-              expectedOutcome: rule.expectedOutcome,
-            });
-          }
+      if (parsed && parsed.blockingQuestions && Array.isArray(parsed.blockingQuestions)) {
+        const conversationId = `conv-${requirement.id}`;
+        let idCounter = 1;
+
+        const rawCandidates: QuestionCandidate[] = [];
+        for (const q of parsed.blockingQuestions) {
+          const cand: QuestionCandidate = {
+            id: `CAND-${String(idCounter++).padStart(3, '0')}`,
+            conversationId,
+            text: q.question,
+            type: q.options && Array.isArray(q.options) && q.options.length > 0 ? 'single-choice' : 'open-text',
+            options: q.options,
+            category: q.topic || 'General Clarification',
+            impact: 'blocking-understanding',
+            rationale: q.whyAsking || 'Material decision affecting test cases.',
+            skipRisk: 'Incomplete scenario coverage.',
+            priority: 'high',
+          };
+          rawCandidates.push(cand);
         }
 
-        if (parsed.additionalActors && Array.isArray(parsed.additionalActors)) {
-          for (const actor of parsed.additionalActors) {
-            if (!analysisResult.intelligence.actors.some(a => a.name.toLowerCase() === actor.name.toLowerCase())) {
-              analysisResult.intelligence.actors.push({
-                name: actor.name,
-                description: actor.description,
-              });
-            }
-          }
-        }
+        const decisionEngine = new PlaybookDecisionEngine();
+        const { activeQuestions: filteredQ, telemetry } = await decisionEngine.evaluateQuestions(
+          mentalModel,
+          rawCandidates,
+          activeProvider
+        );
 
-        if (parsed.blockingQuestions && Array.isArray(parsed.blockingQuestions)) {
-          const cappedQuestions = parsed.blockingQuestions.slice(0, 3);
-          const conversationId = `conv-${requirement.id}`;
-          let idCounter = 1;
-
-          for (const q of cappedQuestions) {
-            const cand: QuestionCandidate = {
-              id: `CAND-${String(idCounter).padStart(3, '0')}`,
-              conversationId,
-              text: q.question,
-              type: q.options && Array.isArray(q.options) && q.options.length > 0 ? 'single-choice' : 'open-text',
-              options: q.options,
-              category: q.topic || 'General Clarification',
-              impact: 'blocking-understanding',
-              rationale: q.whyAsking || 'Material decision affecting test cases.',
-              skipRisk: 'Incomplete scenario coverage.',
-              priority: 'high',
-            };
-            candidates.push(cand);
-
-            const activeQ: Question = {
-              ...cand,
-              id: `Q-${String(idCounter).padStart(3, '0')}`,
-              status: 'pending',
-            };
-            activeQuestions.push(activeQ);
-            idCounter++;
-          }
-        }
+        candidates = rawCandidates;
+        activeQuestions = filteredQ;
+        telemetryLog = telemetry;
       }
     } else {
       const generator = new DefaultQuestionCandidateGenerator();
@@ -174,12 +200,14 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
       const clarifResult = await clarifier.planClarifications(
         requirement,
         analysisResult.intelligence,
+        { provider: activeProvider, mentalModel }
       );
       candidates = clarifResult.candidates;
       activeQuestions = clarifResult.activeQuestions;
+      telemetryLog = clarifResult.telemetry;
     }
 
-    // 4. Construct Conversation
+    // 6. Construct Conversation
     const conversation: Conversation = {
       id: `conv-${requirement.title}`,
       projectId: requirement.projectId,
@@ -191,18 +219,28 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
       answers: [],
       createdAt: new Date(),
       updatedAt: new Date(),
+      
+      systemModel,
+      evidenceGraph,
+      mentalModel
     };
 
     (conversation as any).requirementTitle = requirement.title;
     (conversation as any).requirementContent = requirement.content;
     (conversation as any).validationReport = analysisResult.validation;
 
-    // Deterministic Domain Detection
+    // Deterministic Domain Detection (Backward compatibility helper)
     const domainDetector = new RuleBasedDomainDetector();
     const { domains, confidencePercent } = domainDetector.detect(requirement.content);
 
     (conversation as any).detectedDomains = domains;
     (conversation as any).confidencePercent = confidencePercent;
+    (conversation as any).telemetry = telemetryLog;
+    (conversation as any).analytics = {
+      activeProvider: this.orchestrator.lastSelectedProviderName,
+      providerId: this.orchestrator.lastSelectedProviderId,
+      selectionReason: this.orchestrator.lastSelectedReason,
+    };
 
     await this.storage.saveConversation(conversation);
     return conversation;
@@ -224,25 +262,74 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
 
     // Pattern Memory Learning: Storing manual corrections
     try {
-      const { DefaultKnowledgeEngine } = await import('../knowledge/knowledgeEngine.js');
-      const knowledgeEngine = new DefaultKnowledgeEngine();
-
       for (const ans of answers) {
         const question = conv.questions.find((q) => q.id === ans.questionId);
         if (question) {
           const ansText =
             ans.textValue || (ans.selectedOptions ? ans.selectedOptions.join(', ') : '');
-          await knowledgeEngine.learnFromCorrection(conv.requirementId, question.text, ansText);
+          await this.knowledgeEngine.learnFromCorrection(conv.requirementId, question.text, ansText);
         }
       }
 
-      const entries = knowledgeEngine.getStore();
+      const entries = this.knowledgeEngine.getStore();
       const storageAsKnowledge = this.storage as any;
       if (typeof storageAsKnowledge.saveKnowledge === 'function' && entries.length > 0) {
         await storageAsKnowledge.saveKnowledge(entries);
       }
     } catch {
       // Safe fallback
+    }
+
+    // Dynamic Iterative Refinement of System and QA Mental Models based on user answers
+    try {
+      const answersText = conv.questions
+        .map((q) => `Q: ${q.text} -> A: ${q.answer?.textValue || q.answer?.selectedOptions?.join(', ') || 'N/A'}`)
+        .join('\n');
+      
+      const refinedRequirement: Requirement = {
+        id: conv.requirementId,
+        projectId: conv.projectId,
+        title: (conv as any).requirementTitle || '',
+        content: `${(conv as any).requirementContent || ''}\n\n### Clarifications Answers\n${answersText}`,
+        contentType: 'markdown',
+        version: 1,
+        status: 'draft',
+        metadata: {},
+      };
+
+      const systemEngine = new SystemUnderstandingEngine();
+      const updatedSystemModel = await systemEngine.understand(refinedRequirement, this.orchestrator);
+
+      const reasoningEngine = new QAReasoningEngine();
+      const updatedEvidenceGraph: EvidenceGraph = {
+        system: updatedSystemModel,
+        rulesEvidence: [],
+        knowledgeEvidence: conv.evidenceGraph?.knowledgeEvidence || [],
+        aiObservations: [
+          {
+            id: 'refinement-obs-1',
+            type: 'Component',
+            value: updatedSystemModel.name,
+            confidence: 0.99,
+            evidence: ['Human Clarification Answers'],
+            reason: 'Refined System Model after user clarification answers.'
+          }
+        ]
+      };
+      
+      const updatedMentalModel = await reasoningEngine.reason(updatedEvidenceGraph);
+
+      conv.systemModel = updatedSystemModel;
+      conv.evidenceGraph = updatedEvidenceGraph;
+      conv.mentalModel = updatedMentalModel;
+      
+      (conv as any).analytics = {
+        activeProvider: this.orchestrator.lastSelectedProviderName,
+        providerId: this.orchestrator.lastSelectedProviderId,
+        selectionReason: this.orchestrator.lastSelectedReason
+      };
+    } catch (err) {
+      console.error('Failed iterative model refinement:', err);
     }
 
     conv.status = 'ready-for-generation';
@@ -288,6 +375,9 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
       },
     );
 
+    // Attach canonical mental model to context
+    (context as any).mentalModel = conv.mentalModel;
+
     const strategyEngine = new DefaultTestStrategyEngine();
     const strategy = await strategyEngine.developStrategy(context);
 
@@ -303,6 +393,12 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
     sessionId: string,
     customProvider?: ILLMProvider,
   ): Promise<QAArtifact[]> {
+    if (customProvider) {
+      this.orchestrator.registerCustomProvider(customProvider);
+    }
+    const hasAI = customProvider && customProvider.id !== 'mock' && customProvider.id !== 'mock-llm-provider';
+    const activeProvider = hasAI ? this.orchestrator : (customProvider || new MockLLMProvider());
+
     const conv = await this.storage.loadConversation(sessionId);
     if (!conv) {
       throw new Error(`Session ${sessionId} not found.`);
@@ -338,6 +434,10 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
       },
     );
 
+    // Attach canonical mental model to context
+    (context as any).mentalModel = conv.mentalModel;
+
+
     const strategy: TestStrategy = (conv as any).generatedStrategy || {
       id: `strat-${conv.id}`,
       requirementId: conv.requirementId,
@@ -369,8 +469,7 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
     });
 
     const generator = new DefaultArtifactGenerator();
-    const provider = customProvider || new MockLLMProvider();
-    const artifacts = await generator.generateArtifacts(context, plan, provider);
+    const artifacts = await generator.generateArtifacts(context, plan, activeProvider);
 
      (conv as any).generatedArtifacts = artifacts;
 
@@ -383,6 +482,19 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
       }
     }
     conv.testCases = testCases;
+
+    const report = DefaultArtifactGenerator.getOptimizer().getCumulativeReport();
+    (conv as any).analytics = {
+      originalLength: report.originalLength,
+      optimizedLength: report.optimizedLength,
+      savedTokens: report.savedTokens,
+      savedPercent: report.savedPercent,
+      cacheHits: report.cacheHits,
+      estimatedSavingsUSD: report.estimatedSavingsUSD,
+      activeProvider: this.orchestrator.lastSelectedProviderName,
+      providerId: this.orchestrator.lastSelectedProviderId,
+      selectionReason: this.orchestrator.lastSelectedReason,
+    };
 
     conv.status = 'reviewing';
     conv.updatedAt = new Date();
@@ -514,4 +626,18 @@ You must respond with a raw JSON object matching this TypeScript interface (do n
       trace: coverageResult.traceLogs.join('\n'),
     };
   }
+
+  public async bootstrapWorkspace(projectRoot: string): Promise<{ profile: WorkspaceProfile; pendingDNA: ProjectDNA }> {
+    const workspaceEngine = new WorkspaceIntelligenceEngine();
+    const profile = await workspaceEngine.analyze(projectRoot);
+
+    const dnaStore = new ProjectDNAStore();
+    const pendingDNA = dnaStore.generateDefaultDNA(profile);
+
+    return {
+      profile,
+      pendingDNA
+    };
+  }
 }
+

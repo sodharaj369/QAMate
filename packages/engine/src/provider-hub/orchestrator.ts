@@ -1,8 +1,9 @@
-import { ILLMProvider } from '../interfaces/index.js';
+import { ILLMProvider, LLMRequestOptions } from '../interfaces/index.js';
 import { EfficiencyEngine } from '../platform/efficiency.js';
 import { TokenAnalytics } from '../analytics/tokenAnalytics.js';
 import { TrustFramework } from '../platform/trust.js';
-import { CostMode } from '../platform/config.js';
+import { CostMode, ConfigurationManager } from '../platform/config.js';
+import { LLMProviderFactory } from './providerFactory.js';
 
 export interface AIRequest {
   taskType:
@@ -36,19 +37,214 @@ export interface OrchestratorOptions {
   cloudProviderPremium?: ILLMProvider;
 }
 
-export class AIOrchestrator {
+interface AvailableProviderEntry {
+  provider: ILLMProvider;
+  priority: number;
+  reason: string;
+  isAvailable: boolean;
+}
+
+export class AIOrchestrator implements ILLMProvider {
+  public readonly id = 'orchestrator';
+  public readonly name = 'AI Orchestrator Gateway';
+
+  public lastSelectedProviderId = 'mock';
+  public lastSelectedProviderName = 'Offline Analysis';
+  public lastSelectedReason = 'Default mock fallback';
+
+  private customProviders: ILLMProvider[] = [];
+  private availableProviders: AvailableProviderEntry[] = [];
+
   constructor(
     private readonly efficiency: EfficiencyEngine,
     private readonly telemetry: TokenAnalytics,
     private readonly trust: TrustFramework,
+    private readonly configManager?: ConfigurationManager,
   ) {}
 
+  /**
+   * Registers a custom runtime provider (such as VS Code LM API)
+   */
+  public registerCustomProvider(provider: ILLMProvider): void {
+    if (!this.customProviders.some((p) => p.id === provider.id)) {
+      this.customProviders.push(provider);
+    }
+  }
+
+  /**
+   * Clears custom registered providers
+   */
+  public clearCustomProviders(): void {
+    this.customProviders = [];
+  }
+
+  /**
+   * Refreshes the status and availability of all potential providers dynamically
+   */
+  public async refreshProviders(): Promise<void> {
+    const settings = this.configManager?.getSettings() || { apiKeys: {} as Record<string, string>, costMode: 'balanced' };
+    const apiKeys: Record<string, string> = settings.apiKeys || {};
+    const preferredProvider = apiKeys['preferred_provider'] || 'mock';
+
+    const list: AvailableProviderEntry[] = [];
+
+    // 1. OpenAI
+    const openAIKey = apiKeys['openai'] || process.env.OPENAI_API_KEY;
+    if (openAIKey) {
+      const preferred = preferredProvider === 'openai';
+      try {
+        const prov = LLMProviderFactory.createProvider({
+          providerId: 'openai',
+          apiKey: openAIKey,
+          modelName: apiKeys['preferred_model'] || 'gpt-4o',
+        });
+        list.push({
+          provider: prov,
+          priority: preferred ? 100 : 9,
+          reason: preferred ? 'User preferred configured provider' : 'Configured via API Key',
+          isAvailable: true,
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    // 2. Claude
+    const claudeKey = apiKeys['claude'] || process.env.ANTHROPIC_API_KEY;
+    if (claudeKey) {
+      const preferred = preferredProvider === 'claude';
+      try {
+        const prov = LLMProviderFactory.createProvider({
+          providerId: 'claude',
+          apiKey: claudeKey,
+          modelName: apiKeys['preferred_model'] || 'claude-3-5-sonnet-20240620',
+        });
+        list.push({
+          provider: prov,
+          priority: preferred ? 100 : 10,
+          reason: preferred ? 'User preferred configured provider' : 'Configured via API Key',
+          isAvailable: true,
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    // 3. Gemini
+    const geminiKey = apiKeys['gemini'] || process.env.GEMINI_API_KEY;
+    if (geminiKey) {
+      const preferred = preferredProvider === 'gemini';
+      try {
+        const prov = LLMProviderFactory.createProvider({
+          providerId: 'gemini',
+          apiKey: geminiKey,
+          modelName: apiKeys['preferred_model'] || 'gemini-1.5-pro',
+        });
+        list.push({
+          provider: prov,
+          priority: preferred ? 100 : 8,
+          reason: preferred ? 'User preferred configured provider' : 'Configured via API Key',
+          isAvailable: true,
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    // 4. Ollama (Local Server)
+    const ollamaEndpoint = apiKeys['ollama'] || apiKeys['ollama_endpoint'] || process.env.OLLAMA_ENDPOINT || 'http://localhost:11434';
+    let isOllamaOnline = false;
+    try {
+      const pingUrl = `${ollamaEndpoint}/api/tags`;
+      const res = await Promise.race([
+        fetch(pingUrl).then((r) => r.ok),
+        new Promise<boolean>((_, reject) => setTimeout(() => reject(new Error('timeout')), 400)),
+      ]);
+      isOllamaOnline = !!res;
+    } catch {
+      isOllamaOnline = false;
+    }
+
+    if (isOllamaOnline) {
+      const preferred = preferredProvider === 'ollama';
+      try {
+        const prov = LLMProviderFactory.createProvider({
+          providerId: 'ollama',
+          apiEndpoint: ollamaEndpoint,
+          modelName: apiKeys['preferred_model'] || 'llama3',
+        });
+        list.push({
+          provider: prov,
+          priority: preferred ? 100 : 7,
+          reason: preferred ? 'User preferred local provider' : 'Local Ollama server is online',
+          isAvailable: true,
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    // 5. Custom registered providers (VS Code LM API, etc.)
+    for (const cp of this.customProviders) {
+      const preferred =
+        preferredProvider === cp.id ||
+        (preferredProvider === 'mock' && cp.id.startsWith('vscode-lm'));
+      list.push({
+        provider: cp,
+        priority: preferred ? 100 : 6,
+        reason: preferred ? 'User preferred IDE provider' : 'IDE custom chat models active',
+        isAvailable: true,
+      });
+    }
+
+    // 6. Mock Provider (Always available fallback)
+    const preferredMock =
+      preferredProvider === 'mock' && !this.customProviders.some((p) => p.id.startsWith('vscode-lm'));
+    try {
+      const prov = LLMProviderFactory.createProvider({ providerId: 'mock', modelName: 'mock' });
+      list.push({
+        provider: prov,
+        priority: preferredMock ? 100 : -1,
+        reason: preferredMock ? 'User preferred offline simulation' : 'Default offline mock engine fallback',
+        isAvailable: true,
+      });
+    } catch {
+      // ignore
+    }
+
+    this.availableProviders = list;
+  }
+
+  /**
+   * Implements ILLMProvider generate method to route requests dynamically
+   */
+  public async generate(prompt: string, options?: LLMRequestOptions): Promise<string> {
+    const taskType =
+      prompt.toLowerCase().includes('review') || prompt.toLowerCase().includes('quality gate')
+        ? 'review'
+        : prompt.toLowerCase().includes('plan')
+          ? 'question-planning'
+          : prompt.toLowerCase().includes('test cases') || prompt.toLowerCase().includes('AAA')
+            ? 'test-generation'
+            : 'requirement-analysis';
+
+    const orchestrateRes = await this.orchestrate({
+      taskType,
+      prompt,
+      costMode: this.configManager?.getCostMode() || 'balanced',
+    });
+
+    return orchestrateRes.content;
+  }
+
+  /**
+   * Central orchestrate implementation
+   */
   public async orchestrate(
     request: AIRequest,
     options: OrchestratorOptions = {},
   ): Promise<AIResponse> {
-    const costMode = request.costMode || 'balanced';
-    const allowCloud = options.allowCloud !== false;
+    const costMode = request.costMode || this.configManager?.getCostMode() || 'balanced';
 
     this.trust.addTrace(`Orchestrating task [${request.taskType}] with costMode: ${costMode}`);
 
@@ -65,7 +261,7 @@ export class AIOrchestrator {
         tokensUsed: 0,
         estimatedCost: 0,
         cacheHit: false,
-        warnings: [budgetCheck.warning || 'Budget limit reached']
+        warnings: [budgetCheck.warning || 'Budget limit reached'],
       };
     }
 
@@ -74,30 +270,34 @@ export class AIOrchestrator {
       warnings.push(budgetCheck.warning);
     }
 
-    if (
-      costMode === 'cheapest' &&
-      (request.taskType === 'requirement-analysis' || request.taskType === 'question-planning')
-    ) {
-      const estimatedSaved = this.efficiency.estimateTokens(request.prompt);
-      this.telemetry.logSkippedRequest(estimatedSaved);
-      this.trust.addTrace(`Orchestrator: Bypassed AI. Route directly to rule engine mock.`);
+    // Check cheapest mode rule bypass!
+    if (costMode === 'cheapest') {
+      this.telemetry.logSkippedRequest(this.efficiency.estimateTokens(request.prompt));
+      this.trust.addTrace(`Orchestrator: Bypassing AI entirely on rule-based cheapest mode.`);
+      this.lastSelectedProviderId = 'offline-rules';
+      this.lastSelectedProviderName = 'Rules Engine Offline Analysis';
+      this.lastSelectedReason = 'Bypassed AI on rule-based cheapest mode request';
       return {
-        content: `Rule Engine Mock Output for task: ${request.taskType}`,
-        providerId: 'mock',
-        modelName: 'default',
+        content: 'Rule Engine Mock Output',
+        providerId: 'offline-rules',
+        modelName: 'rule-engine',
         latencyMS: 1,
         tokensUsed: 0,
         estimatedCost: 0,
         cacheHit: false,
-        warnings
+        warnings,
       };
     }
 
+    // Lookup Prompt Replay Cache
     const cached = this.efficiency.getCachedResponse(request.prompt);
     if (cached) {
       const estimatedSaved = this.efficiency.estimateTokens(request.prompt);
       this.telemetry.logCacheHit(estimatedSaved);
       this.trust.addTrace(`Orchestrator: Cache hit resolved.`);
+      this.lastSelectedProviderId = 'cache';
+      this.lastSelectedProviderName = 'Prompt Replay Cache';
+      this.lastSelectedReason = 'Resolved via local memory cache hit';
       return {
         content: cached,
         providerId: 'cache',
@@ -106,62 +306,75 @@ export class AIOrchestrator {
         tokensUsed: 0,
         estimatedCost: 0,
         cacheHit: true,
-        warnings
+        warnings,
       };
     }
 
-    const providersToTry: ILLMProvider[] = [];
+    // Refresh dynamic runtime status
+    await this.refreshProviders();
 
-    if (costMode === 'cheapest') {
-      if (options.localProvider) providersToTry.push(options.localProvider);
-    } else if (costMode === 'balanced') {
-      if (request.taskType === 'test-generation') {
-        if (allowCloud && options.cloudProviderPremium)
-          providersToTry.push(options.cloudProviderPremium);
-        if (allowCloud && options.cloudProviderCheap)
-          providersToTry.push(options.cloudProviderCheap);
-        if (options.localProvider) providersToTry.push(options.localProvider);
-      } else {
-        if (options.localProvider) providersToTry.push(options.localProvider);
-        if (allowCloud && options.cloudProviderCheap)
-          providersToTry.push(options.cloudProviderCheap);
-        if (allowCloud && options.cloudProviderPremium)
-          providersToTry.push(options.cloudProviderPremium);
-      }
-    } else {
-      if (allowCloud && options.cloudProviderPremium)
-        providersToTry.push(options.cloudProviderPremium);
-      if (allowCloud && options.cloudProviderCheap) providersToTry.push(options.cloudProviderCheap);
-      if (options.localProvider) providersToTry.push(options.localProvider);
+    // Compile list of providers to try
+    const providersToTry: Array<{ provider: ILLMProvider; priority: number; reason: string }> = [];
+
+    // If options contains explicit custom providers (from tests/explicit orchestrate calls), prioritize them!
+    if (options.localProvider) {
+      providersToTry.push({ provider: options.localProvider, priority: 200, reason: 'Explicit local provider option' });
+    }
+    if (options.cloudProviderCheap) {
+      providersToTry.push({ provider: options.cloudProviderCheap, priority: 190, reason: 'Explicit cheap cloud provider option' });
+    }
+    if (options.cloudProviderPremium) {
+      providersToTry.push({ provider: options.cloudProviderPremium, priority: 195, reason: 'Explicit premium cloud provider option' });
     }
 
-    if (providersToTry.length === 0) {
-      throw new Error(`Orchestrator: No valid AI providers configured for task type: ${request.taskType}`);
+    // Add dynamically discovered available providers (avoid duplicates)
+    for (const entry of this.availableProviders) {
+      if (!providersToTry.some((p) => p.provider.id === entry.provider.id)) {
+        providersToTry.push({ provider: entry.provider, priority: entry.priority, reason: entry.reason });
+      }
+    }
+
+    // Sort providers by priority descending
+    const sortedProviders = providersToTry.sort((a, b) => b.priority - a.priority);
+
+    if (sortedProviders.length === 0) {
+      throw new Error(`Orchestrator: No valid AI providers detected at runtime.`);
     }
 
     let lastError: Error | null = null;
-    for (let i = 0; i < providersToTry.length; i++) {
-      const provider = providersToTry[i];
+
+    // Failover execution loop
+    for (const item of sortedProviders) {
+      const provider = item.provider;
       const start = performance.now();
       try {
         this.trust.addTrace(`Orchestrator: Attempting completion using provider: ${provider.name}`);
-        
+        this.lastSelectedProviderId = provider.id;
+        this.lastSelectedProviderName = provider.name;
+        this.lastSelectedReason = item.reason;
+
+        // Apply a strict 30 second timeout per provider attempt
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`Provider request timed out after 30000ms`)), 30000)
+          setTimeout(() => reject(new Error(`Provider request timed out after 30000ms`)), 30000),
         );
-        
+
         const response = await Promise.race([
           provider.generate(request.prompt),
-          timeoutPromise
+          timeoutPromise,
         ]);
-        
-        const duration = performance.now() - start;
 
+        const duration = performance.now() - start;
         const inputTokens = this.efficiency.estimateTokens(request.prompt);
         const outputTokens = this.efficiency.estimateTokens(response);
 
         this.efficiency.setCachedResponse(request.prompt, response);
-        this.telemetry.logRequest(provider.id || 'mock', provider.name || 'default', inputTokens, outputTokens, duration);
+        this.telemetry.logRequest(
+          provider.id || 'mock',
+          provider.name || 'default',
+          inputTokens,
+          outputTokens,
+          duration,
+        );
         this.trust.addTrace(`Orchestrator: Request resolved successfully using ${provider.name}.`);
 
         const pricingReport = this.telemetry.getReport();
@@ -174,19 +387,38 @@ export class AIOrchestrator {
           tokensUsed: inputTokens + outputTokens,
           estimatedCost: pricingReport.estimatedCost,
           cacheHit: false,
-          warnings
+          warnings,
         };
       } catch (err: any) {
         lastError = err;
         this.telemetry.logFallback();
         this.trust.addTrace(
-          `Orchestrator: Provider ${provider.name} failed with error: ${err.message}. Escalating...`,
+          `Orchestrator: Provider ${provider.name} failed: ${err.message}. Failover to next...`,
         );
       }
     }
 
-    throw new Error(
-      `Orchestrator: All configured models failed. Last error: ${lastError?.message}`,
+    // If every single provider fails, default to Offline Mode using mock response
+    this.lastSelectedProviderId = 'mock';
+    this.lastSelectedProviderName = 'Offline Analysis';
+    this.lastSelectedReason = `Offline Mode: All configured AI providers failed. Last error: ${lastError?.message}`;
+
+    this.trust.addTrace(
+      `Orchestrator: Entered Offline Mode. Reason: All providers failed. Last error: ${lastError?.message}`,
     );
+
+    const mockProv = LLMProviderFactory.createProvider({ providerId: 'mock', modelName: 'mock' });
+    const fallbackResponse = await mockProv.generate(request.prompt);
+
+    return {
+      content: fallbackResponse,
+      providerId: 'mock',
+      modelName: 'offline-fallback',
+      latencyMS: 10,
+      tokensUsed: 0,
+      estimatedCost: 0,
+      cacheHit: false,
+      warnings: [...warnings, `All AI providers failed. Entered Offline Mode. Last error: ${lastError?.message}`],
+    };
   }
 }

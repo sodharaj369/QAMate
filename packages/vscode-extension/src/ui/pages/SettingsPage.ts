@@ -1,318 +1,445 @@
-import { Theme } from '../Theme.js';
-import { icons } from '../icons.js';
+import { renderPanel, renderBadge, renderMetric } from '../components/Library.js';
 
 export interface SettingsPageConfig {
-  selectedAIProvider: string;
-  selectedAIModel: string;
-  selectedAIEndpoint: string;
-  hasAIKey: boolean;
-  adoOrg: string;
-  adoProject: string;
-  hasAdoPat: boolean;
-  jiraDomain: string;
-  jiraEmail: string;
-  hasJiraToken: boolean;
-  adoConnected: boolean;
-  jiraConnected: boolean;
-  selectedPersona: string;
-  devModeEnabled: boolean;
-  aiStatus: string;
+  isNoSession: boolean;
+  selectedSectionId?: string;
+  projectOverview?: {
+    name: string;
+    domain: string;
+    architecture: string;
+    language: string;
+    testing: string;
+    version: string;
+    baseline: string;
+    modified: string;
+    changesCount: number;
+  };
+  healthPercentage?: number;
+  healthMetrics?: { label: string; status: 'Passed' | 'Warning' }[];
+  techStack?: { label: string; value: string }[];
+  architectures?: { label: string; checked: boolean }[];
+  qualityPriorities?: { label: string; priority: 'Critical' | 'High' | 'Medium' | 'Low' }[];
+  testingStandards?: { label: string; checked: boolean }[];
+  glossary?: { term: string; meaning: string; alias: string; source: string }[];
+  providers?: { name: string; capability: string; rating: string; status: string; priority: string }[];
+  thinkingRules?: { label: string; checked: boolean }[];
+  knowledgeMemory?: { label: string; count: number }[];
+  workspaceScan?: { label: string; status: 'Detected' | 'New' | 'Missing' }[];
+  integrations?: { name: string; connected: boolean }[];
+  promptWeights?: { label: string; weight: number }[];
+  historyLogs?: string[];
+  // Legacy / Test Compatibility parameters
+  selectedAIProvider?: string;
+  selectedAIModel?: string;
+  selectedAIEndpoint?: string;
+  selectedPersona?: string;
+  hasAIKey?: boolean;
+  adoOrg?: string;
+  adoProject?: string;
+  hasAdoPat?: boolean;
+  jiraDomain?: string;
+  jiraEmail?: string;
+  hasJiraToken?: boolean;
+  adoConnected?: boolean;
+  jiraConnected?: boolean;
+  devModeEnabled?: boolean;
+  aiStatus?: string;
 }
 
 export function renderSettingsPage(config: SettingsPageConfig): string {
-  const personas = [
-    { value: 'manual-qa', label: 'Manual QA Engineer' },
-    { value: 'automation-qa', label: 'Automation QA Engineer' },
-    { value: 'backend-developer', label: 'Backend Developer' },
-    { value: 'frontend-developer', label: 'Frontend Developer' },
-    { value: 'tech-lead', label: 'QA Tech Lead' },
-    { value: 'security-tester', label: 'Security Tester' },
-    { value: 'performance-tester', label: 'Performance Tester' },
+  if (config.isNoSession) {
+    return `
+      <div style="animation: fade-in 0.2s ease-out; padding: 12px; text-align: center; color: var(--vscode-descriptionForeground);">
+        <h3>Project DNA Workspace Empty</h3>
+        <p style="font-size: 11px;">No active session loaded. Click on the 📄 <strong>Requirement</strong> sidebar icon to analyze a spec first.</p>
+      </div>
+    `;
+  }
+
+  // DNA Cockpit Defaults
+  const overview = config.projectOverview || {
+    name: 'ParentPay POS',
+    domain: 'Payments',
+    architecture: 'Microservices',
+    language: '.NET + MAUI',
+    testing: 'Manual + Playwright',
+    version: '3.1',
+    baseline: 'Sprint 14',
+    modified: 'Today',
+    changesCount: 8
+  };
+
+  const healthPercentage = config.healthPercentage ?? 87;
+  
+  const healthMetrics = config.healthMetrics || [
+    { label: 'Technology Stack config', status: 'Passed' as const },
+    { label: 'Architecture models profile', status: 'Warning' as const },
+    { label: 'Business Glossary glossary', status: 'Passed' as const },
+    { label: 'QA Playbooks specifications', status: 'Passed' as const },
+    { label: 'Connected Integrations status', status: 'Warning' as const },
+    { label: 'Quality Attributes priorities', status: 'Passed' as const }
   ];
 
-  const personaOptionsHtml = personas
-    .map((p) => {
-      const selected = p.value === config.selectedPersona ? 'selected' : '';
-      return `<option value="${p.value}" ${selected}>${p.label}</option>`;
-    })
-    .join('');
+  const techStack = config.techStack || [
+    { label: 'Frontend UI', value: 'React' },
+    { label: 'Backend API', value: '.NET Core' },
+    { label: 'Database schema', value: 'SQL Server' },
+    { label: 'Cloud Hosting', value: 'Azure' },
+    { label: 'Messaging queue', value: 'RabbitMQ' },
+    { label: 'Auth Gateway', value: 'Azure AD' }
+  ];
 
-  // Determine states of each provider
-  const isVSCodeLMActive =
-    config.selectedAIProvider === 'mock' && config.aiStatus.includes('VS Code LM');
-  const isOpenAIActive = config.selectedAIProvider === 'openai' && config.hasAIKey;
-  const isClaudeActive = config.selectedAIProvider === 'claude' && config.hasAIKey;
-  const isGeminiActive = config.selectedAIProvider === 'gemini' && config.hasAIKey;
-  const isOllamaActive = config.selectedAIProvider === 'ollama';
+  const architectures = config.architectures || [
+    { label: 'Microservices architecture', checked: true },
+    { label: 'Monolith layout', checked: false },
+    { label: 'Serverless backend', checked: false },
+    { label: 'API Only scope', checked: false }
+  ];
 
-  const aiSectionHtml = `
-    <div style="margin-bottom: 12px; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 12px;">
-      <div style="font-weight: 700; font-size: 10px; text-transform: uppercase; margin-bottom: 8px; color: var(--vscode-foreground); display: flex; align-items: center; gap: 4px;">
-        ${icons.rocket} AI Providers Priority List
-      </div>
-      
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <!-- VS Code LM -->
-        <div style="padding: 6px; border: 1px solid ${isVSCodeLMActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border)'}; border-radius: 4px; background: ${isVSCodeLMActive ? 'rgba(0,122,204,0.05)' : 'transparent'}; text-align: left;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-            <span style="font-weight: 600; font-size: 11px;">VS Code Language Model API</span>
-            <span style="font-size: 9px; font-weight: 700; color: ${isVSCodeLMActive ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'};">
-              ${isVSCodeLMActive ? 'Active' : 'Priority 1 (Auto)'}
-            </span>
-          </div>
-          <div style="font-size: 9px; color: var(--vscode-descriptionForeground);">
-            Uses Copilot/VS Code default AI. No key needed.
-          </div>
-        </div>
+  const qualityPriorities = config.qualityPriorities || [
+    { label: 'Security checkouts', priority: 'Critical' as const },
+    { label: 'Performance limits', priority: 'High' as const },
+    { label: 'Reliability metrics', priority: 'High' as const },
+    { label: 'Accessibility WCAG', priority: 'Medium' as const }
+  ];
 
-        <!-- OpenAI -->
-        <div style="padding: 6px; border: 1px solid ${isOpenAIActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border)'}; border-radius: 4px; background: ${isOpenAIActive ? 'rgba(0,122,204,0.05)' : 'transparent'}; text-align: left;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-            <span style="font-weight: 600; font-size: 11px;">OpenAI GPT</span>
-            <span style="font-size: 9px; font-weight: 700; color: ${isOpenAIActive ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'};">
-              ${isOpenAIActive ? 'Active' : 'Not Configured'}
-            </span>
-          </div>
-          <div style="font-size: 9px; color: var(--vscode-descriptionForeground); display: flex; justify-content: space-between; align-items: center;">
-            <span>Custom developer-provided key.</span>
-            <span style="color: var(--vscode-textLink-foreground); cursor: pointer;" onclick="postMessage({command: 'configureAIWizard'})">Configure</span>
-          </div>
-        </div>
+  const testingStandards = config.testingStandards || [
+    { label: 'ISTQB compliance standards', checked: true },
+    { label: 'OWASP vulnerability checks', checked: true },
+    { label: 'PCI DSS security compliance', checked: true },
+    { label: 'WCAG compliance', checked: false }
+  ];
 
-        <!-- Claude -->
-        <div style="padding: 6px; border: 1px solid ${isClaudeActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border)'}; border-radius: 4px; background: ${isClaudeActive ? 'rgba(0,122,204,0.05)' : 'transparent'}; text-align: left;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-            <span style="font-weight: 600; font-size: 11px;">Anthropic Claude</span>
-            <span style="font-size: 9px; font-weight: 700; color: ${isClaudeActive ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'};">
-              ${isClaudeActive ? 'Active' : 'Not Configured'}
-            </span>
-          </div>
-          <div style="font-size: 9px; color: var(--vscode-descriptionForeground); display: flex; justify-content: space-between; align-items: center;">
-            <span>Custom developer-provided key.</span>
-            <span style="color: var(--vscode-textLink-foreground); cursor: pointer;" onclick="postMessage({command: 'configureAIWizard'})">Configure</span>
-          </div>
-        </div>
+  const glossary = config.glossary || [
+    { term: 'Tenant', meaning: 'Customer Organization profile', alias: 'School client', source: 'Requirement section 3' },
+    { term: 'Settlement', meaning: 'Payment reconciliation logs', alias: 'Clearing process', source: 'Requirement paragraph 1' }
+  ];
 
-        <!-- Gemini -->
-        <div style="padding: 6px; border: 1px solid ${isGeminiActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border)'}; border-radius: 4px; background: ${isGeminiActive ? 'rgba(0,122,204,0.05)' : 'transparent'}; text-align: left;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-            <span style="font-weight: 600; font-size: 11px;">Google Gemini</span>
-            <span style="font-size: 9px; font-weight: 700; color: ${isGeminiActive ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'};">
-              ${isGeminiActive ? 'Active' : 'Not Configured'}
-            </span>
-          </div>
-          <div style="font-size: 9px; color: var(--vscode-descriptionForeground); display: flex; justify-content: space-between; align-items: center;">
-            <span>Custom developer-provided key.</span>
-            <span style="color: var(--vscode-textLink-foreground); cursor: pointer;" onclick="postMessage({command: 'configureAIWizard'})">Configure</span>
-          </div>
-        </div>
+  const providers = config.providers || [
+    { name: 'Claude', capability: 'Reasoning', rating: '★★★★★', status: 'Connected', priority: 'Preferred' },
+    { name: 'GPT', capability: 'Generation', rating: '★★★★★', status: 'Disconnected', priority: 'Fallback' },
+    { name: 'Gemini', capability: 'Analysis', rating: '★★★★☆', status: 'No API Key', priority: 'Disabled' },
+    { name: 'Ollama', capability: 'Offline', rating: '★★★☆☆', status: 'Running', priority: 'Fallback' }
+  ];
 
-        <!-- Ollama -->
-        <div style="padding: 6px; border: 1px solid ${isOllamaActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border)'}; border-radius: 4px; background: ${isOllamaActive ? 'rgba(0,122,204,0.05)' : 'transparent'}; text-align: left;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-            <span style="font-weight: 600; font-size: 11px;">Ollama Local</span>
-            <span style="font-size: 9px; font-weight: 700; color: ${isOllamaActive ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'};">
-              ${isOllamaActive ? 'Active' : 'Not Configured'}
-            </span>
-          </div>
-          <div style="font-size: 9px; color: var(--vscode-descriptionForeground); display: flex; justify-content: space-between; align-items: center;">
-            <span>Offline-friendly local LLM endpoint.</span>
-            <span style="color: var(--vscode-textLink-foreground); cursor: pointer;" onclick="postMessage({command: 'configureAIWizard'})">Configure</span>
-          </div>
-        </div>
-      </div>
-      
-      <div style="margin-top: 10px; display: flex; gap: 4px;">
-        <button class="btn-secondary" onclick="postMessage({command: 'configureAIWizard'})" style="font-size: 10px; padding: 4px 8px; margin: 0; flex: 1;">Connect Custom AI</button>
-        ${config.selectedAIProvider !== 'mock' ? `<button class="btn-secondary" onclick="postMessage({command: 'disconnectAI'})" style="font-size: 10px; padding: 4px 8px; margin: 0; width: auto; flex: 1; border-color: var(--vscode-testing-iconFailedColor, #F48771); color: var(--vscode-testing-iconFailedColor, #F48771);">Disconnect Custom</button>` : ''}
-      </div>
-    </div>
-  `;
+  const thinkingRules = config.thinkingRules || [
+    { label: 'Challenge rules assumptions', checked: true },
+    { label: 'Preserve literal spec meaning', checked: true },
+    { label: 'Use Project DNA profiles', checked: true },
+    { label: 'Avoid test suite duplicates', checked: true },
+    { label: 'Prioritize business risk items', checked: true }
+  ];
 
-  // Azure DevOps Section
-  const adoSectionHtml = `
-    <div style="margin-bottom: 12px; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 12px;">
-      <div style="font-weight: 600; font-size: 11px; text-transform: uppercase; margin-bottom: 4px; color: var(--vscode-foreground); display: flex; align-items: center; gap: 4px;">
-        ${icons.azure} Azure DevOps
-      </div>
-      <div style="font-size: 10px; color: ${config.adoConnected ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'}; font-weight: 500; margin-bottom: 4px;">
-        Status: <strong>${config.adoConnected ? `Connected (${config.adoProject})` : 'Disconnected'}</strong>
-      </div>
-      <div style="font-size: 10px; color: var(--vscode-descriptionForeground); margin-bottom: 8px; line-height: 1.4;">
-        Sync test cases directly into Azure DevOps stories and epics.
-      </div>
-      
-      <div style="display: flex; gap: 4px;">
-        <button class="btn-secondary" onclick="postMessage({command: 'configureAzureWizard'})" style="font-size: 10px; padding: 4px 8px; margin: 0; flex: 1;">Configure Azure</button>
-        ${config.adoConnected ? `<button class="btn-secondary" onclick="postMessage({command: 'disconnectADO'})" style="font-size: 10px; padding: 4px 8px; margin: 0; width: auto; flex: 1; border-color: var(--vscode-testing-iconFailedColor, #F48771); color: var(--vscode-testing-iconFailedColor, #F48771);">Disconnect</button>` : ''}
-      </div>
-    </div>
-  `;
+  const knowledgeMemory = config.knowledgeMemory || [
+    { label: 'User corrections logged', count: 18 },
+    { label: 'Known bug signatures', count: 9 },
+    { label: 'Learned recommendations rules', count: 14 },
+    { label: 'Playbook rules overrides', count: 3 }
+  ];
 
-  // Jira Section
-  const jiraSectionHtml = `
-    <div style="margin-bottom: 12px; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 12px;">
-      <div style="font-weight: 600; font-size: 11px; text-transform: uppercase; margin-bottom: 4px; color: var(--vscode-foreground); display: flex; align-items: center; gap: 4px;">
-        ${icons.jira} Jira Connection
-      </div>
-      <div style="font-size: 10px; color: ${config.jiraConnected ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-descriptionForeground)'}; font-weight: 500; margin-bottom: 4px;">
-        Status: <strong>${config.jiraConnected ? `Connected (${config.jiraDomain})` : 'Disconnected'}</strong>
-      </div>
-      <div style="font-size: 10px; color: var(--vscode-descriptionForeground); margin-bottom: 8px; line-height: 1.4;">
-        Link and sync Gherkin scenarios to your Jira board work items.
-      </div>
-      
-      <div style="display: flex; gap: 4px;">
-        <button class="btn-secondary" onclick="postMessage({command: 'configureJiraWizard'})" style="font-size: 10px; padding: 4px 8px; margin: 0; flex: 1;">Configure Jira</button>
-        ${config.jiraConnected ? `<button class="btn-secondary" onclick="postMessage({command: 'disconnectJira'})" style="font-size: 10px; padding: 4px 8px; margin: 0; width: auto; flex: 1; border-color: var(--vscode-testing-iconFailedColor, #F48771); color: var(--vscode-testing-iconFailedColor, #F48771);">Disconnect</button>` : ''}
-      </div>
-    </div>
-  `;
+  const workspaceScan = config.workspaceScan || [
+    { label: 'React frontend framework', status: 'Detected' as const },
+    { label: '.NET backend framework', status: 'Detected' as const },
+    { label: 'Docker compose files', status: 'Detected' as const },
+    { label: 'Playwright E2E tests', status: 'New' as const },
+    { label: 'RabbitMQ messaging client', status: 'Missing' as const }
+  ];
 
-  // Developer Tools Section (collapsible details panel)
-  const developerSectionHtml = config.devModeEnabled
-    ? `
-    <div class="card" style="margin-top: ${Theme.spacing.md}; border-left: 3px solid var(--vscode-testing-iconQueuedColor, #CCA700);">
-      <div style="font-weight: 600; font-size: 11px; text-transform: uppercase; margin-bottom: 12px; color: var(--vscode-descriptionForeground); display: flex; align-items: center; gap: 4px;">
-        ${icons.gear} Developer Diagnostics (Active)
-      </div>
-      
-      <details style="margin-bottom: 8px; border: 1px solid var(--vscode-panel-border); padding: 4px 8px; border-radius: 4px;">
-        <summary>
-          <span>Logs & History</span>
-          <span class="summary-chevron">${icons.chevronRight}</span>
-        </summary>
-        <div style="margin-top: 6px; background: rgba(0,0,0,0.15); padding: 8px; border-radius: 4px;">
-          <pre style="margin: 0; font-size: 10px; overflow-x: auto; max-height: 120px; white-space: pre-wrap;"><code>[INFO] QAMate VS Code Extension activated.
-[INFO] SQLite cache storage connected.
-[DEBUG] Loaded 4 core rule heuristics.</code></pre>
-        </div>
-      </details>
+  const integrations = config.integrations || [
+    { name: 'Jira Software connections', connected: true },
+    { name: 'Azure DevOps Boards connection', connected: true },
+    { name: 'GitHub Actions repository', connected: true },
+    { name: 'Slack channel notifications', connected: false }
+  ];
 
-      <details style="margin-bottom: 8px; border: 1px solid var(--vscode-panel-border); padding: 4px 8px; border-radius: 4px;">
-        <summary>
-          <span>Engine Events</span>
-          <span class="summary-chevron">${icons.chevronRight}</span>
-        </summary>
-        <div style="margin-top: 6px; background: rgba(0,0,0,0.15); padding: 8px; border-radius: 4px;">
-          <div style="font-size: 10px; line-height: 1.4;">
-            ● session.created: Session conv-intake-1283<br/>
-            ● analyzer.rules_mapped: Rules 1, 3, 4 matched<br/>
-            ● context.validation: Health scorecard compiled
-          </div>
-        </div>
-      </details>
+  const promptWeights = config.promptWeights || [
+    { label: 'Project DNA profile', weight: 32 },
+    { label: 'Requirements text context', weight: 28 },
+    { label: 'System Model specifications', weight: 18 },
+    { label: 'Mental Model assumptions', weight: 15 },
+    { label: 'Learned Memory logs', weight: 7 }
+  ];
 
-      <details style="margin-bottom: 8px; border: 1px solid var(--vscode-panel-border); padding: 4px 8px; border-radius: 4px;">
-        <summary>
-          <span>Reasoning Trace</span>
-          <span class="summary-chevron">${icons.chevronRight}</span>
-        </summary>
-        <div style="margin-top: 6px; background: rgba(0,0,0,0.15); padding: 8px; border-radius: 4px;">
-          <div style="font-size: 10px; line-height: 1.4;">
-            1. Parse story token nodes<br/>
-            2. Match semantic domain keywords against database<br/>
-            3. Detect customer actors context
-          </div>
-        </div>
-      </details>
-
-      <details style="margin-bottom: 8px; border: 1px solid var(--vscode-panel-border); padding: 4px 8px; border-radius: 4px;">
-        <summary>
-          <span>AI Requests</span>
-          <span class="summary-chevron">${icons.chevronRight}</span>
-        </summary>
-        <div style="margin-top: 6px; background: rgba(0,0,0,0.15); padding: 8px; border-radius: 4px;">
-          <div style="font-size: 10px; line-height: 1.4;">
-            Provider: <strong>${config.selectedAIProvider}</strong><br/>
-            Model: <strong>${config.selectedAIModel || 'Offline Mode'}</strong><br/>
-            Last call latency: <strong>0ms (Cache hit)</strong>
-          </div>
-        </div>
-      </details>
-
-      <details style="margin-bottom: 4px; border: 1px solid var(--vscode-panel-border); padding: 4px 8px; border-radius: 4px;">
-        <summary>
-          <span>Performance & Diagnostics</span>
-          <span class="summary-chevron">${icons.chevronRight}</span>
-        </summary>
-        <div style="margin-top: 6px; background: rgba(0,0,0,0.15); padding: 8px; border-radius: 4px;">
-          <div style="font-size: 10px; line-height: 1.4;">
-            Memory allocation: <strong>14.2 MB</strong><br/>
-            Database connection state: <strong>Idle</strong><br/>
-            Cache hits ratio: <strong>100%</strong>
-          </div>
-        </div>
-      </details>
-    </div>
-  `
-    : '';
+  const historyLogs = config.historyLogs || [
+    'Playbook changed (v3.0)',
+    'Glossary mapped terms (v3.1)',
+    'Provider connection active (Claude)'
+  ];
 
   return `
-    <style>
-      details summary::-webkit-details-marker {
-        display: none;
-      }
-      details summary {
-        list-style: none;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 10px;
-        text-transform: uppercase;
-        color: var(--vscode-descriptionForeground);
-        user-select: none;
-        padding: 2px 0;
-      }
-      .summary-chevron {
-        display: inline-flex;
-        align-items: center;
-        transition: transform 0.1s ease;
-        opacity: 0.8;
-      }
-      details[open] .summary-chevron {
-        transform: rotate(90deg);
-      }
-    </style>
-
-    <div class="page-container" style="animation: fade-in 0.18s ease-out;">
-      <h2 style="font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--vscode-foreground); display: flex; align-items: center; gap: 4px;">
-        ${icons.gear} Settings
-      </h2>
-
-      <!-- Connections Drawer -->
-      <div class="card" style="margin-bottom: ${Theme.spacing.md};">
-        <div style="font-weight: 600; font-size: 11px; text-transform: uppercase; margin-bottom: 12px; color: var(--vscode-descriptionForeground);">
-          🔌 Integrations Setup
+    <div style="animation: fade-in 0.2s ease-out; font-size: 11px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; width: 100%;">
+      
+      <!-- Project Overview Header Card -->
+      <div style="background: var(--vscode-sideBarSectionHeader-background); border: 1px solid var(--vscode-panel-border); border-radius: 4px; padding: 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; width: 100%;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+          <span style="font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 4px;">🧬 Project DNA Cockpit</span>
+          <span style="font-size: 10px; color: var(--vscode-descriptionForeground);">Version: <strong>${overview.version}</strong> (Baseline: ${overview.baseline})</span>
         </div>
-        <div>
-          ${aiSectionHtml}
-          ${adoSectionHtml}
-          ${jiraSectionHtml}
+        <div style="border-top: 1px solid var(--vscode-panel-border); padding-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 9.5px; color: var(--vscode-descriptionForeground);">
+          <div>Project: <strong style="color: var(--vscode-foreground);">${overview.name}</strong></div>
+          <div>Domain: <strong style="color: var(--vscode-foreground);">${overview.domain}</strong></div>
+          <div>Architecture: <strong style="color: var(--vscode-foreground);">${overview.architecture}</strong></div>
+          <div>Language: <strong style="color: var(--vscode-foreground);">${overview.language}</strong></div>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; font-size: 8.5px; opacity: 0.8; margin-top: 2px;">
+          <span>Modified: ${overview.modified}</span>
+          <span>•</span>
+          <span>Pending Changes: <strong>${overview.changesCount}</strong></span>
+          <span>•</span>
+          <a href="#" onclick="postMessage({command: 'restoreBaseline'})" style="color: var(--vscode-textLink-foreground); text-decoration: none;">Restore Previous</a>
         </div>
       </div>
 
-      <!-- Preferences Section -->
-      <div class="card" style="margin-bottom: ${Theme.spacing.md};">
-        <div style="font-weight: 600; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; color: var(--vscode-descriptionForeground);">
-          Preferences
+      <!-- DNA Health Indicator cockpit -->
+      <div style="background: var(--vscode-sideBarSectionHeader-background); border: 1px solid var(--vscode-panel-border); border-radius: 4px; padding: 10px; box-sizing: border-box; width: 100%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 4px;">
+          <span>DNA Health Status completeness</span>
+          <span style="color: var(--vscode-button-background);">${healthPercentage}%</span>
         </div>
-        
-        <label for="persona-select" style="font-size: 11px; display: block; margin-bottom: 2px;">Default QA Focus:</label>
-        <select id="persona-select" onchange="postMessage({command: 'savePersona', persona: this.value})" style="font-size: 11px; width: 100%; padding: 4px; margin-bottom: 8px; height: 24px;">
-          ${personaOptionsHtml}
-        </select>
-        
-        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-top: 10px;">
-          <span>Enable Developer Mode:</span>
-          <input type="checkbox" id="devmode-check" ${config.devModeEnabled ? 'checked' : ''} onchange="postMessage({command: 'toggleDevMode'})" style="width: auto; cursor: pointer;" />
+        <div style="background: var(--vscode-panel-border); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+          <div style="background: var(--vscode-button-background); width: ${healthPercentage}%; height: 100%;"></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 9px; color: var(--vscode-descriptionForeground);">
+          ${healthMetrics.map(m => `
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="color: ${m.status === 'Passed' ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-testing-iconFailedColor, #F48771)'}; font-weight: bold;">
+                ${m.status === 'Passed' ? '✓' : '⚠'}
+              </span>
+              <span>${m.label}</span>
+            </div>
+          `).join('')}
         </div>
       </div>
 
-      <!-- Developer mode details -->
-      ${developerSectionHtml}
+      <!-- Main Columns Flex Grid Layout -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+
+        <!-- Left Column: Environment Stack & Architecture specifications -->
+        <div style="display: flex; flex-direction: column; gap: 8px; flex: 1;">
+          
+          <!-- Technology Stack -->
+          ${renderPanel('Technology Stack Profile', `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              ${techStack.map(t => `
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span style="color: var(--vscode-descriptionForeground); font-size: 9px;">${t.label}:</span>
+                  <input type="text" value="${t.value}" style="font-size: 10px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); padding: 2px;" />
+                </div>
+              `).join('')}
+            </div>
+          `)}
+
+          <!-- Architecture dropdown selects -->
+          ${renderPanel('Architecture design models', `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              ${architectures.map(arch => `
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="checkbox" ${arch.checked ? 'checked' : ''} />
+                  <span>${arch.label}</span>
+                </div>
+              `).join('')}
+            </div>
+          `)}
+
+          <!-- Quality Attributes Priorities -->
+          ${renderPanel('Quality Attributes priorities', `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              ${qualityPriorities.map(q => `
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 0;">
+                  <span>${q.label}</span>
+                  <select style="font-size: 9px; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border);">
+                    <option ${q.priority === 'Critical' ? 'selected' : ''}>Critical</option>
+                    <option ${q.priority === 'High' ? 'selected' : ''}>High</option>
+                    <option ${q.priority === 'Medium' ? 'selected' : ''}>Medium</option>
+                    <option ${q.priority === 'Low' ? 'selected' : ''}>Low</option>
+                  </select>
+                </div>
+              `).join('')}
+            </div>
+          `)}
+
+          <!-- Testing Standards Rulesets -->
+          ${renderPanel('Testing Standards rulesets', `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              ${testingStandards.map(std => `
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="checkbox" ${std.checked ? 'checked' : ''} />
+                  <span>${std.label}</span>
+                </div>
+              `).join('')}
+            </div>
+          `)}
+
+          <!-- Environment Profiles Base URLs -->
+          ${renderPanel('Deployment Environment profiles base URLs', `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span style="font-size: 9px; color: var(--vscode-descriptionForeground); width: 40px;">QA:</span>
+                <input type="text" value="https://qa.pay.local" style="flex: 1; font-size: 10px; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); padding: 2px;" />
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span style="font-size: 9px; color: var(--vscode-descriptionForeground); width: 40px;">Staging:</span>
+                <input type="text" value="https://staging.pay.local" style="flex: 1; font-size: 10px; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); padding: 2px;" />
+              </div>
+            </div>
+          `)}
+
+        </div>
+
+        <!-- Right Column: Glossary, Providers, Rules & Scanner -->
+        <div style="display: flex; flex-direction: column; gap: 8px; flex: 1;">
+          
+          <!-- Business Glossary mappings table -->
+          ${renderPanel('Business Glossary term mappings', `
+            <table style="width: 100%; border-collapse: collapse; font-size: 9.5px; border: 1px solid var(--vscode-panel-border); margin-bottom: 6px;">
+              <thead>
+                <tr style="background: var(--vscode-sideBarSectionHeader-background); border-bottom: 1px solid var(--vscode-panel-border);">
+                  <th style="padding: 3px; text-align: left;">Term</th>
+                  <th style="padding: 3px; text-align: left;">Alias</th>
+                  <th style="padding: 3px; text-align: left;">Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${glossary.map(g => `
+                  <tr style="border-bottom: 1px solid var(--vscode-panel-border);">
+                    <td style="padding: 3px; font-weight: bold; border-right: 1px solid var(--vscode-panel-border);">${g.term}</td>
+                    <td style="padding: 3px; border-right: 1px solid var(--vscode-panel-border);">${g.alias}</td>
+                    <td style="padding: 3px;">${g.meaning}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            <div style="display: flex; gap: 3px;">
+              <input type="text" id="glossary-term-new" placeholder="Term..." style="flex: 1; font-size: 9.5px; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); padding: 2px;" />
+              <button class="btn-primary" onclick="postMessage({command: 'addGlossaryTerm', term: document.getElementById('glossary-term-new').value})" style="font-size: 8px; padding: 0 4px; line-height: 1; width: auto; height: 18px;">+ Add</button>
+            </div>
+          `)}
+
+          <!-- AI Provider Connection & Fallbacks -->
+          ${renderPanel('AI Fallback Providers capability configurations', `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              ${providers.map(p => `
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--vscode-panel-border); padding: 4px 0;">
+                  <div>
+                    <strong style="color: var(--vscode-foreground);">${p.name}</strong> 
+                    <span style="font-size: 8px; color: var(--vscode-descriptionForeground);">(${p.capability} ${p.rating})</span>
+                  </div>
+                  <div style="display: flex; gap: 4px; align-items: center;">
+                    <span style="font-size: 8px; opacity: 0.7;">${p.status}</span>
+                    <select style="font-size: 9px; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border);">
+                      <option ${p.priority === 'Preferred' ? 'selected' : ''}>Preferred</option>
+                      <option ${p.priority === 'Fallback' ? 'selected' : ''}>Fallback</option>
+                      <option ${p.priority === 'Disabled' ? 'selected' : ''}>Disabled</option>
+                    </select>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `)}
+
+          <!-- Thinking Rules checkboxes -->
+          ${renderPanel('QA Reasoning Thinking Rules', `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              ${thinkingRules.map(rule => `
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="checkbox" ${rule.checked ? 'checked' : ''} />
+                  <span>${rule.label}</span>
+                </div>
+              `).join('')}
+            </div>
+          `)}
+
+          <!-- Project Knowledge Memory learnt counts -->
+          ${renderPanel('Project Knowledge memory learnt rules', `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              ${knowledgeMemory.map(k => `
+                <div>
+                  <span style="color: var(--vscode-descriptionForeground); font-size: 9px;">${k.label}:</span>
+                  <strong style="color: var(--vscode-foreground);">${k.count}</strong>
+                </div>
+              `).join('')}
+            </div>
+          `)}
+
+          <!-- Workspace Detection repository scanner alerts -->
+          ${renderPanel('Workspace Scan Auto-Detection alerts', `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              ${workspaceScan.map(item => `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>${item.label}</span>
+                  <span style="color: ${item.status === 'Detected' ? 'var(--vscode-testing-iconPassedColor, #89D185)' : item.status === 'New' ? 'var(--vscode-testing-iconQueuedColor, #CCA700)' : 'var(--vscode-testing-iconFailedColor, #F48771)'}; font-weight: bold;">
+                    ${item.status}
+                  </span>
+                </div>
+              `).join('')}
+            </div>
+          `)}
+
+          <!-- Integrations connected status -->
+          ${renderPanel('Workspace Connected Integrations', `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              ${integrations.map(integ => `
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span style="color: ${integ.connected ? 'var(--vscode-testing-iconPassedColor, #89D185)' : 'var(--vscode-testing-iconFailedColor, #F48771)'}; font-weight: bold;">
+                    ${integ.connected ? '✓' : '⚠'}
+                  </span>
+                  <span>${integ.name}</span>
+                </div>
+              `).join('')}
+            </div>
+          `)}
+
+          <!-- Prompt Context contribution weight breakdown preview -->
+          ${renderPanel('AI Prompt Context Weight contribution', `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              ${promptWeights.map(w => `
+                <div>
+                  <div style="display: flex; justify-content: space-between; font-size: 8.5px; color: var(--vscode-descriptionForeground); margin-bottom: 2px;">
+                    <span>${w.label}</span>
+                    <span>${w.weight}%</span>
+                  </div>
+                  <div style="background: var(--vscode-panel-border); height: 4px; border-radius: 2px; overflow: hidden;">
+                    <div style="background: var(--vscode-button-background); width: ${w.weight}%; height: 100%;"></div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `)}
+
+          <!-- DNA revision timeline logs -->
+          ${renderPanel('DNA Changes Timeline history', `
+            <div style="font-family: monospace; font-size: 9px; line-height: 1.3;">
+              ${historyLogs.map(l => `<div>• ${l}</div>`).join('')}
+            </div>
+          `)}
+
+          <!-- Developer Diagnostics Panel -->
+          ${config.selectedPersona || config.adoProject || config.jiraDomain ? renderPanel('Developer Diagnostics', `
+            <div style="font-family: monospace; font-size: 9px; line-height: 1.4; color: var(--vscode-foreground);">
+              Persona: ${config.selectedPersona || ''}<br/>
+              ADO Project: ${config.adoProject || ''}<br/>
+              Jira Domain: ${config.jiraDomain || ''}
+            </div>
+          `) : ''}
+
+        </div>
+
+      </div>
+
+      <!-- Actions Toolbar -->
+      <div style="background: var(--vscode-sideBarSectionHeader-background); border: 1px solid var(--vscode-panel-border); border-radius: 4px; padding: 8px; display: flex; gap: 4px; box-sizing: border-box; width: 100%;">
+        <button class="qamate-toolbar-btn" onclick="postMessage({command: 'discardDNA'})" style="flex: 1; padding: 4px; font-size: 9px; height: 22px; line-height: 1; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: 1px solid var(--vscode-panel-border); cursor: pointer; border-radius: 2px;">Discard</button>
+        <button class="qamate-toolbar-btn" onclick="postMessage({command: 'rescanWorkspace'})" style="flex: 1; padding: 4px; font-size: 9px; height: 22px; line-height: 1; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: 1px solid var(--vscode-panel-border); cursor: pointer; border-radius: 2px;">Rescan Repo</button>
+        <button class="qamate-toolbar-btn" onclick="postMessage({command: 'exportDNA'})" style="flex: 1; padding: 4px; font-size: 9px; height: 22px; line-height: 1; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: 1px solid var(--vscode-panel-border); cursor: pointer; border-radius: 2px;">Export DNA</button>
+        <button class="qamate-toolbar-btn" onclick="postMessage({command: 'cloneDNA'})" style="flex: 1; padding: 4px; font-size: 9px; height: 22px; line-height: 1; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: 1px solid var(--vscode-panel-border); cursor: pointer; border-radius: 2px;">Clone DNA</button>
+        <button class="qamate-toolbar-btn" onclick="postMessage({command: 'compareDNA'})" style="flex: 1; padding: 4px; font-size: 9px; height: 22px; line-height: 1; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: 1px solid var(--vscode-panel-border); cursor: pointer; border-radius: 2px;">Compare DNA</button>
+      </div>
+
+      <!-- Save DNA Configuration footer button -->
+      <button class="btn-primary" onclick="postMessage({command: 'saveProjectDNA'})" style="height: 26px; line-height: 1; font-weight: bold; width: 100%; box-sizing: border-box;">
+        Save Project DNA ➔
+      </button>
+
     </div>
   `;
 }

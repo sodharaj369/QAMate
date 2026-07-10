@@ -1,0 +1,44 @@
+{
+  "projectStore": [],
+  "orgStore": [
+    {
+      "id": "KNOW-ORG-1",
+      "title": "Banking & Payments Standards",
+      "type": "domain-playbooks",
+      "scope": "organization",
+      "content": "Always verify double-booking, race conditions, auth validations, response code SLAs, and database log encryption.",
+      "tags": [
+        "banking",
+        "payments",
+        "pci-compliance"
+      ],
+      "domain": "Banking & Payments",
+      "createdBy": "QA Director",
+      "version": 1,
+      "confidence": 1,
+      "status": "active",
+      "usageCount": 0,
+      "explanation": "Standards policy rules guide for all transaction networks."
+    },
+    {
+      "id": "KNOW-ORG-2",
+      "title": "Hospitality Playbook rules",
+      "type": "domain-playbooks",
+      "scope": "organization",
+      "content": "Verify room availability lock race hazards, reservation state flows, checkout payment options, and tax code formulas.",
+      "tags": [
+        "hospitality",
+        "booking",
+        "check-in"
+      ],
+      "domain": "Hospitality",
+      "createdBy": "Lead Architect",
+      "version": 1,
+      "confidence": 0.98,
+      "status": "active",
+      "usageCount": 0,
+      "explanation": "Operational playbook rules for hotel bookings systems."
+    }
+  ],
+  "projectHistory": []
+}

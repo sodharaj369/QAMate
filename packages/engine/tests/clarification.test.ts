@@ -120,7 +120,7 @@ describe('Clarification Engine Orchestrator tests', () => {
     const planner = new DefaultQuestionPlanner();
     const engine = new DefaultClarificationEngine(candidateGenerator, prioritizer, deduplicator, planner);
 
-    const result = await engine.planClarifications(mockReq, mockIntelligence, { askOnlyBlocking: true });
+    const result = await engine.planClarifications(mockReq, mockIntelligence, { askOnlyBlocking: true, skipDecisionEngine: true });
     expect(result.candidates).toHaveLength(3);
     expect(result.activeQuestions).toHaveLength(2);
   });

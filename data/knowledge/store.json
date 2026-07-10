@@ -1,261 +1,725 @@
-[
-  {
-    "id": "KE-1178-0LA",
-    "category": "common-defect",
-    "title": "Risk Area: Risk-001: error-handling",
-    "description": "Testing blocked on: \"No error paths, input validation errors, or recovery strategies are described.\" - Tests cannot cover validation error boundaries, leaving security and stability paths unverified. (Severity: high)",
-    "keywords": [
-      "risk-001: error-handling",
-      "risk",
-      "high"
-    ],
-    "sourceRequirementId": "req-0374",
-    "confidence": 0.8,
-    "createdAt": "2026-06-30T17:59:31.179Z"
-  },
-  {
-    "id": "KE-1179-ML4",
-    "category": "common-defect",
-    "title": "Risk Area: Risk-002: permissions-auth",
-    "description": "Testing blocked on: \"User access levels or operation permissions are not specified.\" - Unauthorized request boundaries (e.g. attempting actions as a guest) cannot be verified. (Severity: high)",
-    "keywords": [
-      "risk-002: permissions-auth",
-      "risk",
-      "high"
-    ],
-    "sourceRequirementId": "req-0374",
-    "confidence": 0.8,
-    "createdAt": "2026-06-30T17:59:31.179Z"
-  },
-  {
-    "id": "KE-1179-IW3",
-    "category": "common-defect",
-    "title": "Risk Area: Risk-003: data-formats",
-    "description": "Testing blocked on: \"Strict format guidelines (e.g. date shapes, telephone numbers, emails) are missing.\" - Valid vs invalid format test strings cannot be validated dynamically. (Severity: high)",
-    "keywords": [
-      "risk-003: data-formats",
-      "risk",
-      "high"
-    ],
-    "sourceRequirementId": "req-0374",
-    "confidence": 0.8,
-    "createdAt": "2026-06-30T17:59:31.179Z"
-  },
-  {
-    "id": "KE-1179-8C0",
-    "category": "test-template",
-    "title": "Template: Manual Test Cases",
-    "description": "Reusable Manual Test Cases template from requirement req-0374.",
-    "keywords": [
-      "manual",
-      "test",
-      "cases",
-      "persona",
-      "tc001",
-      "anonymous",
-      "access",
-      "blocked",
-      "security",
-      "boundary",
-      "preconditions",
-      "storage",
-      "account",
-      "exists",
-      "azure",
-      "environment",
-      "public",
-      "flag",
-      "disabled",
-      "actions",
-      "send",
-      "unauthenticated",
-      "http",
-      "request",
-      "sample",
-      "blob",
-      "file",
-      "expected",
-      "outcome",
-      "fails",
-      "forbidden",
-      "validation",
-      "error",
-      "tc002",
-      "authenticated",
-      "succeeds",
-      "valid",
-      "token",
-      "generated",
-      "containing",
-      "active",
-      "auth",
-      "headers",
-      "returns",
-      "successfully",
-      "streams",
-      "content"
-    ],
-    "sourceRequirementId": "req-0374",
-    "sourceArtifactId": "ART-1169-MAN",
-    "confidence": 0.75,
-    "createdAt": "2026-06-30T17:59:31.179Z"
-  },
-  {
-    "id": "KE-1179-QJ6",
-    "category": "test-template",
-    "title": "Template: Regression Checklist",
-    "description": "Reusable Regression Checklist template from requirement req-0374.",
-    "keywords": [
-      "regression",
-      "checklist",
-      "verify",
-      "image",
-      "rendering",
-      "assets",
-      "loading",
-      "existing",
-      "templates",
-      "check",
-      "document",
-      "template",
-      "using",
-      "secure",
-      "storage",
-      "accounts",
-      "replication",
-      "connections",
-      "functional"
-    ],
-    "sourceRequirementId": "req-0374",
-    "sourceArtifactId": "ART-1169-REG",
-    "confidence": 0.75,
-    "createdAt": "2026-06-30T17:59:31.179Z"
-  },
-  {
-    "id": "KE-1179-N62",
-    "category": "test-template",
-    "title": "Template: Exploratory Charter",
-    "description": "Reusable Exploratory Charter template from requirement req-0374.",
-    "keywords": [
-      "exploratory",
-      "charter",
-      "target",
-      "area",
-      "parameter",
-      "tampering",
-      "focus",
-      "guidelines",
-      "manipulate",
-      "generated",
-      "tokens",
-      "parameters",
-      "modify",
-      "expiry",
-      "timestamps",
-      "signatures",
-      "claims",
-      "verify",
-      "container",
-      "access",
-      "locks",
-      "modified",
-      "requests"
-    ],
-    "sourceRequirementId": "req-0374",
-    "sourceArtifactId": "ART-1169-EXP",
-    "confidence": 0.75,
-    "createdAt": "2026-06-30T17:59:31.179Z"
-  },
-  {
-    "id": "KE-1179-Q88",
-    "category": "lesson-learned",
-    "title": "Lesson Learned",
-    "description": "Format the scenario descriptions to explicitly use the Project naming style: \"Given/When/Then\".",
-    "keywords": [
-      "format",
-      "scenario",
-      "descriptions",
-      "explicitly",
-      "project",
-      "naming",
-      "style",
-      "givenwhenthen"
-    ],
-    "sourceRequirementId": "req-0374",
-    "confidence": 0.7,
-    "createdAt": "2026-06-30T17:59:31.179Z"
-  },
-  {
-    "id": "KE-1179-9SH",
-    "category": "reusable-assertion",
-    "title": "Assertion: BR-001",
-    "description": "1. The RegisteredUser must enter a valid coupon code in the voucher field.",
-    "keywords": [
-      "registereduser",
-      "must",
-      "enter",
-      "valid",
-      "coupon",
-      "code",
-      "voucher",
-      "field"
-    ],
-    "sourceRequirementId": "req-0374",
-    "confidence": 0.8,
-    "createdAt": "2026-06-30T17:59:31.179Z"
-  },
-  {
-    "id": "KE-1180-8MV",
-    "category": "reusable-assertion",
-    "title": "Assertion: BR-002",
-    "description": "2. If the coupon is active, the system should apply the discount percentage immediately.",
-    "keywords": [
-      "coupon",
-      "active",
-      "system",
-      "apply",
-      "discount",
-      "percentage",
-      "immediately"
-    ],
-    "sourceRequirementId": "req-0374",
-    "confidence": 0.8,
-    "createdAt": "2026-06-30T17:59:31.180Z"
-  },
-  {
-    "id": "KE-1180-SKV",
-    "category": "reusable-assertion",
-    "title": "Assertion: BR-003",
-    "description": "3. Only one coupon can be applied per checkout transaction.",
-    "keywords": [
-      "only",
-      "coupon",
-      "applied",
-      "checkout",
-      "transaction"
-    ],
-    "sourceRequirementId": "req-0374",
-    "confidence": 0.8,
-    "createdAt": "2026-06-30T17:59:31.180Z"
-  },
-  {
-    "id": "KE-1180-F6I",
-    "category": "reusable-assertion",
-    "title": "Assertion: BR-004",
-    "description": "4. The system must recalculate the total cart price and display the discounted price fast.",
-    "keywords": [
-      "system",
-      "must",
-      "recalculate",
-      "total",
-      "cart",
-      "price",
-      "display",
-      "discounted",
-      "fast"
-    ],
-    "sourceRequirementId": "req-0374",
-    "confidence": 0.8,
-    "createdAt": "2026-06-30T17:59:31.180Z"
-  }
-]
+{
+  "projectStore": [
+    {
+      "id": "SUG-1489-WKJ",
+      "title": "Correction: Should we validate auth token ",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Yes, expiry must be exactly 3600 seconds.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-2528-C3E",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-7946-9TU",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-0605-8R5",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-4882-8F0",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-6013-5O4",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-9469-FH9",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-5545-B0U",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-3520-7BW",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-2841-D7L",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-2830-09R",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-6206-FCC",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-9342-9UI",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-7987-5FZ",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-8726-1QQ",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-5186-BFM",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-0076-V6H",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-4552-K6O",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-0267-AE1",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-8412-UMS",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-6181-JH3",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-1144-GIV",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-0008-CDP",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-2824-JW8",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-3199-FS0",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-8628-5H9",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-1650-CL7",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-8805-ZAP",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-9126-FG7",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-3012-G60",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-0723-YOH",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-9981-DFG",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-9170-9JN",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-9005-4B0",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-5587-SM6",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-2865-JFK",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-8817-U4R",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-3185-BZ3",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-3196-S3T",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    },
+    {
+      "id": "SUG-3042-6GU",
+      "title": "Correction: The requirement statement \"Cre",
+      "type": "lessons-learned",
+      "scope": "project",
+      "content": "Suppression window is 10 minutes.",
+      "tags": [
+        "correction",
+        "user-added"
+      ],
+      "createdBy": "AI Orchestrator",
+      "version": 1,
+      "confidence": 0.85,
+      "status": "suggestion",
+      "usageCount": 0,
+      "explanation": "AI suggested optimization based on project requirement content patterns."
+    }
+  ],
+  "orgStore": [
+    {
+      "id": "KNOW-ORG-1",
+      "title": "Banking & Payments Standards",
+      "type": "domain-playbooks",
+      "scope": "organization",
+      "content": "Always verify double-booking, race conditions, auth validations, response code SLAs, and database log encryption.",
+      "tags": [
+        "banking",
+        "payments",
+        "pci-compliance"
+      ],
+      "domain": "Banking & Payments",
+      "createdBy": "QA Director",
+      "version": 1,
+      "confidence": 1,
+      "status": "active",
+      "usageCount": 0,
+      "explanation": "Standards policy rules guide for all transaction networks."
+    },
+    {
+      "id": "KNOW-ORG-2",
+      "title": "Hospitality Playbook rules",
+      "type": "domain-playbooks",
+      "scope": "organization",
+      "content": "Verify room availability lock race hazards, reservation state flows, checkout payment options, and tax code formulas.",
+      "tags": [
+        "hospitality",
+        "booking",
+        "check-in"
+      ],
+      "domain": "Hospitality",
+      "createdBy": "Lead Architect",
+      "version": 1,
+      "confidence": 0.98,
+      "status": "active",
+      "usageCount": 0,
+      "explanation": "Operational playbook rules for hotel bookings systems."
+    }
+  ],
+  "projectHistory": []
+}

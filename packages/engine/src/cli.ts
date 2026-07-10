@@ -511,7 +511,7 @@ async function main() {
     console.log(`Business Impact:      ${testStrategy.businessImpact.toUpperCase()}`);
     console.log(`Risk Level:           ${testStrategy.riskLevel.toUpperCase()}`);
     console.log(`Strategy Confidence:  ${(testStrategy.confidenceScore * 100).toFixed(0)}%`);
-    console.log(`Primary Focus Areas:  ${testStrategy.primaryFocus.join(', ')}`);
+    console.log(`Primary Focus Areas:  ${testStrategy.scope.join(', ')}`);
     console.log(`------------------------------------------------------`);
     console.log(`🎯 Traceable Testing Objectives:`);
     testStrategy.objectives.forEach((obj) => console.log(`  - ${obj}`));

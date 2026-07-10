@@ -1,3 +1,5 @@
+import { SystemModel, EvidenceGraph, QAMentalModel } from './platform/reasoningModel.js';
+
 /**
  * ============================================================================
  * QAMATE DOMAIN MODEL (Domain-Driven Design)
@@ -259,6 +261,10 @@ export interface Conversation {
   answers: Answer[];
   testCases?: TestCase[];
 
+  systemModel?: SystemModel;
+  evidenceGraph?: EvidenceGraph;
+  mentalModel?: QAMentalModel;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -370,14 +376,23 @@ export interface EffortEstimation {
  */
 export interface TestStrategy {
   readonly id: string;
+  readonly schemaVersion: number;
+  readonly revision: number;
+  readonly lastUpdated: Date;
   readonly requirementId: string;
   readonly businessImpact: BusinessImpact;
   readonly riskLevel: RiskLevel;
   readonly objectives: string[];
+  readonly scope: string[];
   readonly primaryFocus: string[];
+  readonly risks: string[];
+  readonly approach: string;
   readonly recommendedSuites: SuiteRecommendation[];
   readonly excludedSuites: SuiteExclusion[];
   readonly outOfScope: OutOfScopeItem[];
+  readonly coverage: string[];
+  readonly deliverables: string[];
+  readonly decisions: DecisionRecord[];
   readonly automationCandidates: AutomationCandidate[];
   readonly manualExploratoryScenarios: ManualExploratoryFocus[];
   readonly suggestedTestData: string[];
@@ -496,6 +511,7 @@ export type KnowledgeCategory =
 
 export interface KnowledgeEntry {
   readonly id: string;
+  readonly schemaVersion?: number;
   readonly category: KnowledgeCategory;
   readonly title: string;
   readonly description: string;
@@ -581,3 +597,315 @@ export interface ProviderConfig {
   readonly modelName: string;
   readonly temperature?: number;
 }
+
+/**
+ * ----------------------------------------------------------------------------
+ * 18. Workspace Intelligence & Project DNA Interfaces (Phase 0)
+ * ----------------------------------------------------------------------------
+ */
+
+export interface WorkspaceWarning {
+  readonly category: string;
+  readonly message: string;
+}
+
+export interface WorkspaceProfile {
+  readonly projectId: string;
+  readonly repo: RepositoryProfile;
+  readonly tech: TechnologyProfile;
+  readonly testing: TestingProfile;
+  readonly api: APIProfile;
+  readonly docs: DocumentationProfile;
+  readonly warnings: WorkspaceWarning[];
+  readonly summary: string;
+  readonly analyzedAt: Date;
+}
+
+export interface RepositoryProfile {
+  readonly isGitRepo: boolean;
+  readonly branchName?: string;
+  readonly remoteUrl?: string;
+}
+
+export interface TechnologyProfile {
+  readonly primaryLanguage?: string;
+  readonly runtimeEnvironment?: string;
+  readonly isContainerized: boolean;
+  readonly dependencies: string[];
+}
+
+export interface TestingProfile {
+  readonly framework?: string;
+  readonly testFilesCount: number;
+  readonly testFiles: string[];
+  readonly testDirectories: string[];
+}
+
+export interface APIProfile {
+  readonly hasContracts: boolean;
+  readonly apiFiles: string[];
+  readonly parsedEndpoints: Array<{
+    readonly method: string;
+    readonly path: string;
+    readonly description?: string;
+  }>;
+}
+
+export interface DocumentationProfile {
+  readonly hasReadme: boolean;
+  readonly readmePath?: string;
+  readonly hasADR: boolean;
+  readonly adrFiles: string[];
+}
+
+export interface ProjectDNA {
+  readonly schemaVersion?: number;
+  techStack: string;
+  codingStandards: string[];
+  businessVocabulary: string[];
+  domainGlossary: string[];
+  systemArchitecture: string;
+  testingStandards: string[];
+  teamPreferences: string[];
+  knownLimitations: string[];
+  existingSuites: string[];
+  integrationLandscape: string[];
+  reusableComponents: string[];
+}
+
+export interface ValidationResult<T> {
+  readonly isValid: boolean;
+  readonly errors: string[];
+  readonly warnings: string[];
+  readonly data?: T;
+}
+
+export interface ProviderResponse<T> {
+  readonly providerId: string;
+  readonly modelName: string;
+  readonly latencyMS: number;
+  readonly tokensUsed: number;
+  readonly content: T;
+  readonly confidence?: number;
+  readonly warnings?: string[];
+}
+
+export interface SystemModelDTO {
+  readonly schemaVersion: number;
+  readonly name?: string;
+  readonly components?: Array<{ name?: string; type?: string; description?: string }>;
+  readonly flows?: Array<{ from?: string; to?: string; description?: string; trigger?: string }>;
+  readonly users?: string[];
+  readonly qualityAttributes?: string[];
+  readonly risks?: string[];
+  readonly unknowns?: string[];
+}
+
+export interface TestStrategyDTO {
+  readonly schemaVersion: number;
+  readonly id?: string;
+  readonly requirementId?: string;
+  readonly businessImpact?: string;
+  readonly riskLevel?: string;
+  readonly objectives?: string[];
+  readonly primaryFocus?: string[];
+  readonly recommendedSuites?: Array<{ suite?: string; reason?: string }>;
+  readonly excludedSuites?: Array<{ suite?: string; reason?: string }>;
+  readonly outOfScope?: Array<{ area?: string; reason?: string }>;
+  readonly confidenceScore?: number;
+  readonly reasoningTrace?: string[];
+}
+
+export interface AIObservation {
+  readonly id: string;
+  readonly type: 'Component' | 'Actor' | 'Flow' | 'Risk' | 'Unknown';
+  readonly value: string;
+  readonly confidence: number;
+  readonly evidence: string[];
+  readonly reason: string;
+}
+
+export interface ProviderCapabilities {
+  readonly supportsJson: boolean;
+  readonly supportsVision: boolean;
+  readonly supportsStreaming: boolean;
+  readonly supportsToolCalling: boolean;
+  readonly supportsReasoning: boolean;
+  readonly supportsThinkingBudget: boolean;
+  readonly maxTokens: number;
+  readonly maxContext: number;
+  readonly preferredFormat: 'json' | 'xml' | 'text';
+}
+
+export interface AssumptionDecision {
+  readonly decision: 'confirm' | 'reject' | 'edit';
+  readonly timestamp: Date;
+  readonly user: string;
+  readonly comment?: string;
+}
+
+export interface Assumption {
+  readonly id: string;
+  readonly statement: string;
+  readonly source: 'ai' | 'user' | 'rule';
+  readonly confidence: number;
+  readonly reason: string;
+  readonly evidence: string[];
+  status: 'pending' | 'confirmed' | 'rejected';
+  userComment?: string;
+  readonly decisions: AssumptionDecision[];
+}
+
+export interface HumanFeedback {
+  readonly id: string;
+  readonly targetId: string;
+  readonly targetType: 'assumption' | 'observation';
+  readonly action: 'confirm' | 'reject' | 'edit';
+  readonly comment?: string;
+  readonly timestamp: Date;
+}
+
+export interface CommunicationConfidence {
+  readonly score: number;
+  readonly level: 'VeryHigh' | 'High' | 'Medium' | 'Low';
+}
+
+export interface ReasoningSession {
+  readonly id: string;
+  readonly systemModel: any;
+  readonly rulesEvidence: string[];
+  readonly knowledgeEvidence: string[];
+  readonly aiObservations: AIObservation[];
+  readonly history: string[];
+}
+
+export interface OperationContract {
+  readonly purpose: string;
+  readonly allowedChanges: string[];
+  readonly forbiddenChanges: string[];
+  readonly guarantees: string[];
+}
+
+export const OperationContracts: Record<string, OperationContract> = {
+  rephrase: {
+    purpose: 'Clarify requirement specifications without modifying meaning.',
+    allowedChanges: ['grammar corrections', 'ordering of points', 'formatting'],
+    forbiddenChanges: ['adding new scope', 'removing features', 'changing metrics'],
+    guarantees: ['semantic integrity preserves original intent', 'no details lost']
+  },
+  understand: {
+    purpose: 'Analyze system boundaries and observations.',
+    allowedChanges: ['finding actors', 'mapping component types'],
+    forbiddenChanges: ['modifying existing DNA files', 'silent saving without checks'],
+    guarantees: ['sorted alphabetical consistent model output']
+  }
+};
+
+export interface DecisionRecord {
+  readonly id: string;
+  readonly type: 'assumption' | 'recommendation' | 'strategy';
+  readonly action: 'accepted' | 'rejected' | 'modified';
+  readonly reason?: string;
+  readonly source: string;
+  readonly timestamp: Date;
+}
+
+export interface QARecommendation {
+  readonly id: string;
+  readonly recommendation: string;
+  readonly reason: string;
+  readonly industryPractice: string;
+  readonly priority: 'High' | 'Medium' | 'Low';
+  readonly impact: 'High' | 'Medium' | 'Low';
+  status: 'Pending' | 'Accepted' | 'Ignored' | 'Modified';
+  readonly trigger: string;
+  readonly source: 'Project DNA' | 'AI Observation' | 'Knowledge' | 'Playbook' | 'Rule' | 'User';
+  readonly canAutoApply: boolean;
+  userComment?: string;
+}
+
+export interface ComplianceIssue {
+  readonly rule: string;
+  readonly severity: 'High' | 'Medium' | 'Low';
+  readonly location: string;
+  readonly reason: string;
+  readonly recommendation: string;
+  readonly autoFix: boolean;
+}
+
+export interface ChangeImpactReport {
+  readonly affectedObjectives: string[];
+  readonly affectedSuites: string[];
+  readonly affectedRecommendations: string[];
+  readonly affectedRisks: string[];
+  readonly affectedAssumptions: string[];
+  readonly breakingChange: boolean;
+  readonly strategyDiff: string;
+}
+
+export interface QAValueReport {
+  readonly originalCount: number;
+  readonly optimizedCount: number;
+  readonly duplicatesRemoved: number;
+  readonly casesMerged: number;
+  readonly casesSplit: number;
+  readonly casesParameterized: number;
+  readonly coveragePercentBefore: number;
+  readonly coveragePercentAfter: number;
+}
+
+export interface TraceLink {
+  readonly requirementId: string;
+  readonly componentNames: string[];
+  readonly objectives: string[];
+  readonly recommendations: string[];
+  readonly testCases: string[];
+}
+
+export interface ExportReadiness {
+  readonly ready: boolean;
+  readonly blockingIssues: string[];
+  readonly warnings: string[];
+}
+
+export interface WorkspaceHealthMetrics {
+  readonly requirementQualityScore: number;
+  readonly requirementQualityGrade: string;
+  readonly rulesCoveragePercent: number;
+  readonly confidenceScore: number;
+  readonly confidenceLevel: string;
+  readonly risksMappedCount: number;
+  readonly questionsAskedCount: number;
+  readonly questionsAvoidedCount: number;
+  readonly promptCount: number;
+  readonly tokenUsage: number;
+  readonly providerUsed: string;
+  readonly cacheHitPercent: number;
+  readonly manualOverridesCount: number;
+  readonly readiness: ExportReadiness;
+}
+
+export interface DeliverableBundle {
+  readonly summary: string;
+  readonly strategy: TestStrategy;
+  readonly testCases: TestCase[];
+  readonly risks: any[];
+  readonly traceability: TraceLink;
+  readonly metrics: WorkspaceHealthMetrics;
+  readonly metadata: Record<string, any>;
+}
+
+export interface DeliverableManifest {
+  readonly id: string;
+  readonly version: string;
+  readonly generatedBy: string;
+  readonly generatedAt: Date;
+  readonly provider: string;
+  readonly strategyRevision: number;
+  readonly mentalModelRevision: number;
+  readonly artifacts: string[];
+}
+
+export type ExportProfileType = 'manual-qa' | 'developer' | 'manager' | 'auditor';
+
+
